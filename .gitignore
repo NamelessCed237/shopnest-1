@@ -1,0 +1,45 @@
+# Dépendances
+node_modules/
+.pnpm-store/
+
+# Build
+dist/
+build/
+.output/
+.turbo/
+*.tsbuildinfo
+
+# Env — jamais commité (voir doc/02-conventions.md §11)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Tests
+coverage/
+playwright-report/
+test-results/
+
+# Expo / mobile
+.expo/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Editeurs & OS
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Prisma
+apps/api/prisma/*.db

@@ -1,0 +1,50 @@
+{
+  "name": "@shopnest/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "nest start --watch",
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "lint": "eslint src test",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run --dir src --passWithNoTests",
+    "test:integration": "vitest run --dir test/integration",
+    "test:tenant-isolation": "vitest run --dir test/tenant-isolation",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "clean": "rimraf dist .turbo"
+  },
+  "dependencies": {
+    "@nestjs/common": "11.0.1",
+    "@nestjs/config": "4.0.0",
+    "@nestjs/core": "11.0.1",
+    "@nestjs/event-emitter": "3.0.0",
+    "@nestjs/jwt": "11.0.0",
+    "@nestjs/platform-express": "11.0.1",
+    "@nestjs/throttler": "6.4.0",
+    "@node-rs/argon2": "2.0.2",
+    "@prisma/client": "6.2.1",
+    "@shopnest/contracts": "workspace:*",
+    "@shopnest/utils": "workspace:*",
+    "helmet": "8.0.0",
+    "otplib": "12.0.1",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.1",
+    "zod": "3.24.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "11.0.0",
+    "@nestjs/testing": "11.0.1",
+    "@shopnest/config": "workspace:*",
+    "@types/express": "5.0.0",
+    "@types/node": "22.10.5",
+    "prisma": "6.2.1",
+    "tsx": "4.19.2",
+    "typescript": "5.7.3",
+    "vitest": "2.1.8"
+  }
+}

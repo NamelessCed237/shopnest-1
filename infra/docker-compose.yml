@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: shopnest-postgres
+    environment:
+      POSTGRES_USER: shopnest
+      POSTGRES_PASSWORD: shopnest
+      POSTGRES_DB: shopnest
+    ports: ['5432:5432']
+    volumes: ['postgres-data:/var/lib/postgresql/data']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U shopnest']
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: shopnest-redis
+    ports: ['6379:6379']
+    volumes: ['redis-data:/data']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      retries: 10
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.12
+    container_name: shopnest-meilisearch
+    environment:
+      MEILI_MASTER_KEY: dev-master-key-change-me
+      MEILI_ENV: development
+    ports: ['7700:7700']
+    volumes: ['meili-data:/meili_data']
+
+  minio:
+    image: minio/minio:latest
+    container_name: shopnest-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: shopnest
+      MINIO_ROOT_PASSWORD: shopnest-dev
+    ports: ['9000:9000', '9001:9001']
+    volumes: ['minio-data:/data']
+
+volumes:
+  postgres-data:
+  redis-data:
+  meili-data:
+  minio-data:

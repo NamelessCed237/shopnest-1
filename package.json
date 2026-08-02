@@ -1,0 +1,37 @@
+{
+  "name": "shopnest",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plateforme SaaS e-commerce multi-vendeurs — monorepo",
+  "packageManager": "pnpm@10.0.0",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:unit": "turbo run test:unit",
+    "test:integration": "turbo run test:integration",
+    "test:tenant-isolation": "pnpm --filter @shopnest/api test:tenant-isolation",
+    "test:e2e": "turbo run test:e2e",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md}\"",
+    "clean": "turbo run clean && rimraf node_modules",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down",
+    "db:migrate": "pnpm --filter @shopnest/api db:migrate",
+    "db:seed": "pnpm --filter @shopnest/api db:seed",
+    "db:studio": "pnpm --filter @shopnest/api db:studio"
+  },
+  "devDependencies": {
+    "@shopnest/config": "workspace:*",
+    "prettier": "3.4.2",
+    "rimraf": "6.0.1",
+    "turbo": "2.3.3",
+    "typescript": "5.7.3"
+  }
+}

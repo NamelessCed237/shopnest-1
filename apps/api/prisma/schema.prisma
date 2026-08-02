@@ -1,0 +1,269 @@
+// doc/03 §4 — conventions :
+//   · tables et colonnes en snake_case (@map), modèles en PascalCase
+//   · montants en ENTIERS de centimes, jamais en flottant
+//   · tout index d'une table scopée commence par tenant_id
+//   · toute unicité métier est @@unique([tenantId, …])
+//   · soft delete sur les entités référencées par des commandes
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// MODÈLES GLOBAUX — pas de tenant_id, absents de TENANT_SCOPED_MODELS
+// ============================================================================
+
+model Tenant {
+  id             String   @id @default(uuid()) @db.Uuid
+  slug           String   @unique
+  name           String
+  status         String   @default("trialing")
+  planCode       String   @map("plan_code")
+  customDomain   String?  @unique @map("custom_domain")
+  countryCode    String   @map("country_code") @db.Char(2)
+  defaultCurrency String  @map("default_currency") @db.Char(3)
+  themeJson      Json     @default("{}") @map("theme_json")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  products   Product[]
+  orders     Order[]
+  customers  Customer[]
+  categories Category[]
+  users      TenantUser[]
+
+  @@index([status])
+  @@map("tenants")
+}
+
+model TenantUser {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  email        String
+  passwordHash String   @map("password_hash")
+  role         String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+  @@map("tenant_users")
+}
+
+model SuperAdmin {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  mfaSecret    String?  @map("mfa_secret")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("super_admins")
+}
+
+model AuditLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  actorId        String   @map("actor_id") @db.Uuid
+  actorRole      String   @map("actor_role")
+  action         String
+  targetTenantId String?  @map("target_tenant_id") @db.Uuid
+  targetId       String?  @map("target_id")
+  beforeJson     Json?    @map("before_json")
+  afterJson      Json?    @map("after_json")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([targetTenantId, createdAt])
+  @@index([actorId, createdAt])
+  @@map("audit_logs")
+}
+
+/// doc/03 §5 — refresh tokens ROTATIFS, stockés hachés.
+///
+/// Modèle GLOBAL volontairement (absent de TENANT_SCOPED_MODELS) : le refresh
+/// s'effectue avant toute résolution de tenant, et un super admin n'en a pas.
+/// La lecture se fait exclusivement par `tokenHash` (unique) — jamais par tenant —
+/// donc l'absence de filtre n'ouvre aucun accès transversal.
+model RefreshToken {
+  id         String    @id @default(uuid()) @db.Uuid
+  /// Sujet du token : TenantUser.id, Customer.id ou SuperAdmin.id selon l'audience.
+  userId     String    @map("user_id") @db.Uuid
+  audience   String
+  tenantId   String?   @map("owner_tenant_id") @db.Uuid
+  tokenHash  String    @unique @map("token_hash")
+  /// Toute la chaîne issue d'un même login. Un rejeu révoque la famille entière.
+  familyId   String    @map("family_id") @db.Uuid
+  expiresAt  DateTime  @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@index([userId, audience])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+
+/// doc/03 §6 — idempotence des webhooks : (provider, external_id) unique.
+/// Un rejeu ne crée jamais un second paiement.
+model WebhookEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  provider   String
+  externalId String   @map("external_id")
+  payload    Json
+  processedAt DateTime? @map("processed_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([provider, externalId])
+  @@map("webhook_events")
+}
+
+// ============================================================================
+// MODÈLES SCOPÉS — tenant_id obligatoire, RLS activée, présents dans
+// TENANT_SCOPED_MODELS (apps/api/src/database/prisma.service.ts)
+// ============================================================================
+
+model Product {
+  id                String    @id @default(uuid()) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  slug              String
+  name              String
+  description       String    @default("")
+  priceCents        Int       @map("price_cents")
+  currency          String    @db.Char(3)
+  status            String    @default("draft")
+  stock             Int       @default(0)
+  lowStockThreshold Int       @default(5) @map("low_stock_threshold")
+  imageUrls         String[]  @map("image_urls")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+
+  tenant     Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  variants   ProductVariant[]
+  categories Category[]
+  orderItems OrderItem[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, stock])
+  @@map("products")
+}
+
+model ProductVariant {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @map("tenant_id") @db.Uuid
+  productId  String @map("product_id") @db.Uuid
+  sku        String
+  name       String
+  priceCents Int    @map("price_cents")
+  stock      Int    @default(0)
+  attributes Json   @default("{}")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, sku])
+  @@index([tenantId, productId])
+  @@map("product_variants")
+}
+
+model Category {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  slug     String
+  name     String
+  parentId String? @map("parent_id") @db.Uuid
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, parentId])
+  @@map("categories")
+}
+
+model Customer {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  email     String
+  /// Null pour un acheteur invité converti sans mot de passe.
+  passwordHash String? @map("password_hash")
+  phone     String?
+  firstName String?  @map("first_name")
+  lastName  String?  @map("last_name")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId, createdAt])
+  @@map("customers")
+}
+
+model Order {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  reference       String
+  customerId      String?  @map("customer_id") @db.Uuid
+  status          String   @default("pending")
+  subtotalCents   Int      @map("subtotal_cents")
+  shippingCents   Int      @default(0) @map("shipping_cents")
+  taxCents        Int      @default(0) @map("tax_cents")
+  discountCents   Int      @default(0) @map("discount_cents")
+  totalCents      Int      @map("total_cents")
+  platformFeeCents Int     @default(0) @map("platform_fee_cents")
+  currency        String   @db.Char(3)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  tenant   Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer?   @relation(fields: [customerId], references: [id])
+  items    OrderItem[]
+  payments Payment[]
+
+  @@unique([tenantId, reference])
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, customerId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String @id @default(uuid()) @db.Uuid
+  tenantId    String @map("tenant_id") @db.Uuid
+  orderId     String @map("order_id") @db.Uuid
+  productId   String @map("product_id") @db.Uuid
+  /// Instantané : le produit peut être modifié ou archivé après la commande.
+  productName String @map("product_name")
+  unitPriceCents Int @map("unit_price_cents")
+  quantity    Int
+  lineTotalCents Int @map("line_total_cents")
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([tenantId, orderId])
+  @@map("order_items")
+}
+
+model Payment {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  orderId     String    @map("order_id") @db.Uuid
+  method      String
+  status      String    @default("pending")
+  amountCents Int       @map("amount_cents")
+  currency    String    @db.Char(3)
+  provider    String
+  externalId  String?   @map("external_id")
+  expiresAt   DateTime? @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@unique([provider, externalId])
+  @@index([tenantId, status, createdAt])
+  @@map("payments")
+}

@@ -1,0 +1,7 @@
+{
+  "extends": "@shopnest/config/tsconfig/react.json",
+  "compilerOptions": {
+    "types": []
+  },
+  "include": ["src/**/*"]
+}

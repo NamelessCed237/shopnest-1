@@ -1,0 +1,9 @@
+{
+  "extends": "@shopnest/config/tsconfig/node.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./",
+    "baseUrl": "./"
+  },
+  "include": ["src/**/*", "test/**/*", "prisma/**/*"]
+}

@@ -9,6 +9,8 @@
 export * from './ui-state/option-source.js'
 export * from './ui-state/use-async-options.js'
 export * from './ui-state/use-select.js'
+export * from './ui-state/use-data-table.js'
+export * from './ui-state/use-debounced-value.js'
 
 // Logique métier front
 export * from './cart/cart-calculations.js'

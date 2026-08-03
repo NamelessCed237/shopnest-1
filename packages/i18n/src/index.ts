@@ -18,14 +18,56 @@ export function translate(locale: Locale, key: string, vars?: Record<string, str
 }
 
 /**
+ * Pluriel — résout `<clé>_one` ou `<clé>_other` selon `count`.
+ *
+ * Écrire « 1 restant(s) » ou « 1 restants » est un défaut visible dans toutes les
+ * listes. Les règles de pluriel varient par langue (le français met 0 au
+ * singulier, l'anglais au pluriel), donc on délègue à `Intl.PluralRules` plutôt
+ * que de tester `count > 1`.
+ */
+export function translatePlural(
+  locale: Locale,
+  key: string,
+  count: number,
+  vars?: Record<string, string | number>,
+) {
+  const category = new Intl.PluralRules(locale).select(count)
+  const suffixed = `${key}_${category}`
+  const fallback = `${key}_other`
+  const template =
+    catalogs[locale][suffixed] ?? catalogs[locale][fallback] ?? catalogs.fr[fallback] ?? key
+  return template.replace(/\{(\w+)\}/g, (_, name: string) =>
+    name === 'count' ? formatNumber(count, locale) : String(vars?.[name] ?? `{${name}}`),
+  )
+}
+
+/**
  * Formatage monétaire — JAMAIS de concaténation manuelle avec un symbole.
- * Les montants sont des entiers de centimes (doc/03 §4).
+ *
+ * `amountCents` est un entier d'UNITÉS MINEURES, et leur nombre de décimales
+ * dépend de la devise : 2 pour EUR, mais **0 pour XAF, XOF, JPY** et 3 pour
+ * KWD ou TND. Diviser systématiquement par 100 afficherait 450 FCFA au lieu de
+ * 45 000 — une erreur d'un facteur 100 sur tous les marchés d'Afrique centrale
+ * et de l'Ouest, qui sont précisément ceux que la plateforme vise.
+ *
+ * Le nombre de décimales est demandé à Intl plutôt que codé en dur : la table
+ * ISO 4217 n'a pas à être maintenue à la main.
  */
 export function formatMoney(money: Money, locale: Locale = 'fr'): string {
-  return new Intl.NumberFormat(locale, {
+  const formatter = new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: money.currency,
-  }).format(money.amountCents / 100)
+  })
+  const digits = formatter.resolvedOptions().maximumFractionDigits ?? 2
+  return formatter.format(money.amountCents / 10 ** digits)
+}
+
+/** Nombre d'unités mineures par unité majeure — 100 pour EUR, 1 pour XAF. */
+export function minorUnitsPerMajor(currency: string, locale: Locale = 'fr'): number {
+  const digits =
+    new Intl.NumberFormat(locale, { style: 'currency', currency }).resolvedOptions()
+      .maximumFractionDigits ?? 2
+  return 10 ** digits
 }
 
 /** L'API renvoie toujours de l'UTC ISO 8601 ; la conversion locale se fait à l'affichage. */

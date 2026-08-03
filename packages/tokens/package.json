@@ -10,12 +10,14 @@
     "./tailwind/preset": {
       "types": "./tailwind/preset.d.ts",
       "default": "./tailwind/preset.js"
-    }
+    },
+    "./css/theme.css": "./css/theme.css"
   },
   "scripts": {
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
-    "clean": "rimraf dist .turbo"
+    "clean": "rimraf dist .turbo",
+    "build:css": "node scripts/build-css.mjs"
   },
   "devDependencies": {
     "@shopnest/config": "workspace:*",
@@ -24,6 +26,7 @@
   },
   "files": [
     "src",
-    "tailwind"
+    "tailwind",
+    "css"
   ]
 }

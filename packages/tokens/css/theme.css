@@ -1,0 +1,100 @@
+/* FICHIER GÉNÉRÉ — ne pas éditer à la main.
+ * Source : packages/tokens/src/themes.ts
+ * Régénérer : pnpm --filter @shopnest/tokens build:css
+ */
+
+:root {
+  color-scheme: light;
+    --color-brand-primary: 4 120 87;
+    --color-brand-primaryHover: 6 95 70;
+    --color-brand-primarySubtle: 236 253 245;
+    --color-brand-onPrimary: 255 255 255;
+    --color-surface-base: 255 255 255;
+    --color-surface-raised: 248 250 252;
+    --color-surface-sunken: 238 242 246;
+    --color-surface-overlay-raw: rgba(15, 23, 42, 0.55);
+    --color-border-base: 226 232 240;
+    --color-border-strong: 148 163 184;
+    --color-border-focus: 16 185 129;
+    --color-text-primary: 15 23 42;
+    --color-text-secondary: 71 85 105;
+    --color-text-disabled: 148 163 184;
+    --color-text-inverse: 255 255 255;
+    --color-status-success: 4 120 87;
+    --color-status-warning: 180 83 9;
+    --color-status-danger: 185 28 28;
+    --color-status-info: 14 116 144;
+}
+
+/* Préférence système, tant que l'utilisateur n'a pas choisi explicitement. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+      --color-brand-primary: 52 211 153;
+      --color-brand-primaryHover: 110 231 183;
+      --color-brand-primarySubtle: 11 59 46;
+      --color-brand-onPrimary: 4 32 26;
+      --color-surface-base: 15 23 42;
+      --color-surface-raised: 22 33 58;
+      --color-surface-sunken: 30 41 59;
+      --color-surface-overlay-raw: rgba(2, 6, 23, 0.7);
+      --color-border-base: 41 53 72;
+      --color-border-strong: 100 116 139;
+      --color-border-focus: 52 211 153;
+      --color-text-primary: 233 238 245;
+      --color-text-secondary: 163 176 194;
+      --color-text-disabled: 100 116 139;
+      --color-text-inverse: 15 23 42;
+      --color-status-success: 52 211 153;
+      --color-status-warning: 251 191 36;
+      --color-status-danger: 248 113 113;
+      --color-status-info: 56 189 248;
+  }
+}
+
+/* Choix explicite de l'utilisateur : il doit l'emporter dans les DEUX sens. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+    --color-brand-primary: 52 211 153;
+    --color-brand-primaryHover: 110 231 183;
+    --color-brand-primarySubtle: 11 59 46;
+    --color-brand-onPrimary: 4 32 26;
+    --color-surface-base: 15 23 42;
+    --color-surface-raised: 22 33 58;
+    --color-surface-sunken: 30 41 59;
+    --color-surface-overlay-raw: rgba(2, 6, 23, 0.7);
+    --color-border-base: 41 53 72;
+    --color-border-strong: 100 116 139;
+    --color-border-focus: 52 211 153;
+    --color-text-primary: 233 238 245;
+    --color-text-secondary: 163 176 194;
+    --color-text-disabled: 100 116 139;
+    --color-text-inverse: 15 23 42;
+    --color-status-success: 52 211 153;
+    --color-status-warning: 251 191 36;
+    --color-status-danger: 248 113 113;
+    --color-status-info: 56 189 248;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+    --color-brand-primary: 4 120 87;
+    --color-brand-primaryHover: 6 95 70;
+    --color-brand-primarySubtle: 236 253 245;
+    --color-brand-onPrimary: 255 255 255;
+    --color-surface-base: 255 255 255;
+    --color-surface-raised: 248 250 252;
+    --color-surface-sunken: 238 242 246;
+    --color-surface-overlay-raw: rgba(15, 23, 42, 0.55);
+    --color-border-base: 226 232 240;
+    --color-border-strong: 148 163 184;
+    --color-border-focus: 16 185 129;
+    --color-text-primary: 15 23 42;
+    --color-text-secondary: 71 85 105;
+    --color-text-disabled: 148 163 184;
+    --color-text-inverse: 255 255 255;
+    --color-status-success: 4 120 87;
+    --color-status-warning: 180 83 9;
+    --color-status-danger: 185 28 28;
+    --color-status-info: 14 116 144;
+}

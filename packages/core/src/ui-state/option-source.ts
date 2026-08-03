@@ -1,3 +1,4 @@
+import { normalizeForSearch } from '@shopnest/utils'
 import type {
   FetchOptionsFn,
   Option,
@@ -73,12 +74,10 @@ export function usesServerSearch<T>(source: OptionSource<T>): boolean {
 /** Filtrage local, insensible aux accents et à la casse. */
 export function filterOptionsLocally<T>(options: Option<T>[], search: string): Option<T>[] {
   if (!search.trim()) return options
-  const needle = normalize(search)
+  const needle = normalizeForSearch(search)
   return options.filter(
-    (o) => normalize(o.label).includes(needle) || normalize(o.description ?? '').includes(needle),
+    (o) =>
+      normalizeForSearch(o.label).includes(needle) ||
+      normalizeForSearch(o.description ?? '').includes(needle),
   )
-}
-
-function normalize(input: string): string {
-  return input.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
 }

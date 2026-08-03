@@ -70,6 +70,8 @@ export const OrderSchema = z.object({
   total: MoneySchema,
   /** Commission ShopNest prélevée sur la vente — voir PLAN_LIMITS.transactionFeeRate. */
   platformFee: MoneySchema,
+  /** Cumul des remboursements. Absent tant qu'aucun remboursement n'a eu lieu. */
+  refundedAmount: MoneySchema.optional(),
   payment: PaymentSchema.optional(),
   createdAt: z.string().datetime(),
 })
@@ -93,6 +95,56 @@ export const CreateOrderSchema = z.object({
   idempotencyKey: z.string().uuid(),
 })
 export type CreateOrderInput = z.infer<typeof CreateOrderSchema>
+
+/**
+ * doc §10.2 du cahier des charges — traitement des commandes.
+ *
+ * Les transitions autorisées sont définies ICI, pas dans l'écran : le backend
+ * doit refuser une transition invalide même si un client bogué la demande, et
+ * l'interface ne doit proposer que ce que le serveur accepterait. Une seule
+ * table pour les deux (doc/02 §1.2).
+ */
+export const ORDER_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
+  pending: ['awaiting_payment', 'paid', 'cancelled'],
+  awaiting_payment: ['paid', 'payment_failed', 'cancelled'],
+  paid: ['preparing', 'cancelled', 'refunded'],
+  preparing: ['shipped', 'cancelled', 'refunded'],
+  shipped: ['delivered', 'refunded'],
+  // États terminaux : plus aucune transition. Une commande livrée peut encore
+  // être remboursée, mais c'est une opération de paiement, pas un changement
+  // de statut — elle passe par l'endpoint de remboursement.
+  delivered: [],
+  cancelled: [],
+  refunded: [],
+  payment_failed: ['cancelled'],
+}
+
+export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
+  return ORDER_TRANSITIONS[from].includes(to)
+}
+
+/** Un remboursement reste possible tant que l'argent a été encaissé. */
+export const REFUNDABLE_STATUSES: readonly OrderStatus[] = [
+  'paid',
+  'preparing',
+  'shipped',
+  'delivered',
+]
+
+export const UpdateOrderStatusSchema = z.object({
+  status: z.enum(ORDER_STATUS),
+  /** doc/03 §6 — rejouer la requête ne doit pas produire deux transitions. */
+  idempotencyKey: z.string().uuid(),
+})
+export type UpdateOrderStatusInput = z.infer<typeof UpdateOrderStatusSchema>
+
+export const RefundOrderSchema = z.object({
+  /** Montant en unités mineures. Doit rester ≤ (total − déjà remboursé). */
+  amountCents: z.number().int().positive(),
+  reason: z.string().min(1).max(500),
+  idempotencyKey: z.string().uuid(),
+})
+export type RefundOrderInput = z.infer<typeof RefundOrderSchema>
 
 export const ListOrdersQuerySchema = CursorQuerySchema.extend({
   status: z.enum(ORDER_STATUS).optional(),

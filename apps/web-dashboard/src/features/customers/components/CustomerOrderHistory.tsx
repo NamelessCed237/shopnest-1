@@ -4,6 +4,7 @@ import type { Order } from '@shopnest/contracts'
 import { useTranslation } from '@shopnest/i18n/react'
 import { Button, Card, DataTable, EmptyState, type DataTableColumn } from '@shopnest/ui-web'
 import { OrderStatusBadge, PaymentMethodLabel } from '@/features/orders'
+import { countLabelKey } from '@/lib/count-label'
 import { useCustomerOrders } from '../api/use-customers'
 
 /**
@@ -71,7 +72,7 @@ export function CustomerOrderHistory({
         ? 'empty'
         : 'success'
 
-  const total = query.data?.pages[0]?.total ?? 0
+  const count = countLabelKey('orders.countShown', rows.length, query.data?.pages[0]?.total)
 
   return (
     <Card
@@ -100,7 +101,7 @@ export function CustomerOrderHistory({
 
         {status === 'success' && query.hasNextPage && (
           <div className="mt-md flex items-center justify-between text-sm text-text-secondary">
-            <span>{tp('orders.countShown', rows.length, { shown: rows.length, total })}</span>
+            <span>{tp(count.key, count.count, count.params)}</span>
             <Button
               variant="secondary"
               loading={query.isFetchingNextPage}

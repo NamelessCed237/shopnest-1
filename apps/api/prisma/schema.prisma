@@ -11,7 +11,16 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+
+  // Connexion applicative : passe par le POOLER Supabase (port 6543).
+  // Le pooler en mode transaction ne supporte ni les requêtes préparées
+  // nommées ni les advisory locks — d'où `pgbouncer=true` dans l'URL.
+  url = env("DATABASE_URL")
+
+  // Connexion DIRECTE (port 5432), utilisée uniquement par les migrations.
+  // `prisma migrate` pose un verrou consultatif que le pooler ne sait pas
+  // relayer : sans `directUrl`, les migrations restent bloquées sans message.
+  directUrl = env("DIRECT_URL")
 }
 
 // ============================================================================
@@ -169,17 +178,21 @@ model ProductVariant {
 }
 
 model Category {
-  id       String @id @default(uuid()) @db.Uuid
-  tenantId String @map("tenant_id") @db.Uuid
-  slug     String
-  name     String
-  parentId String? @map("parent_id") @db.Uuid
+  id          String  @id @default(uuid()) @db.Uuid
+  tenantId    String  @map("tenant_id") @db.Uuid
+  slug        String
+  name        String
+  description String  @default("")
+  parentId    String? @map("parent_id") @db.Uuid
+  /// Ordre d'affichage à niveau égal. Non unique : deux catégories peuvent
+  /// partager une position, l'id sert alors de départage stable.
+  position    Int     @default(0)
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   products Product[]
 
   @@unique([tenantId, slug])
-  @@index([tenantId, parentId])
+  @@index([tenantId, parentId, position])
   @@map("categories")
 }
 
@@ -214,6 +227,14 @@ model Order {
   discountCents   Int      @default(0) @map("discount_cents")
   totalCents      Int      @map("total_cents")
   platformFeeCents Int     @default(0) @map("platform_fee_cents")
+  /// Cumul des remboursements, en unités mineures.
+  ///
+  /// Stocké plutôt que recalculé depuis les paiements : c'est la valeur que
+  /// contrôle chaque nouveau remboursement (« ≤ total − déjà remboursé »), et
+  /// la recalculer à chaque vérification ferait dépendre une règle d'intégrité
+  /// d'une agrégation — donc d'un état qu'une écriture concurrente peut changer
+  /// entre la lecture et l'écriture.
+  refundedCents   Int      @default(0) @map("refunded_cents")
   currency        String   @db.Char(3)
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
@@ -234,6 +255,9 @@ model OrderItem {
   tenantId    String @map("tenant_id") @db.Uuid
   orderId     String @map("order_id") @db.Uuid
   productId   String @map("product_id") @db.Uuid
+  /// Déclinaison commandée, si le produit en a. Pas de clé étrangère : une
+  /// variante supprimée ne doit pas empêcher de relire une commande passée.
+  variantId   String? @map("variant_id") @db.Uuid
   /// Instantané : le produit peut être modifié ou archivé après la commande.
   productName String @map("product_name")
   unitPriceCents Int @map("unit_price_cents")
@@ -245,6 +269,30 @@ model OrderItem {
 
   @@index([tenantId, orderId])
   @@map("order_items")
+}
+
+/// doc/03 §6 — idempotence des mutations déclenchées par le CLIENT.
+///
+/// `webhook_events` couvre les rejeux du PRESTATAIRE de paiement. Celle-ci
+/// couvre les rejeux du navigateur : double-clic sur « Marquer comme expédiée »,
+/// reprise après une coupure réseau, nouvelle tentative automatique. Sans elle,
+/// deux transitions s'appliquent — ou deux remboursements partent.
+///
+/// La réponse est stockée pour que le rejeu renvoie EXACTEMENT le même corps :
+/// répondre « déjà traité » obligerait chaque client à gérer un second cas.
+model IdempotencyKey {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  /// Fournie par le client. Unique par tenant ET par opération : la même clé
+  /// sur deux endpoints différents reste deux intentions distinctes.
+  key       String
+  scope     String
+  response  Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([tenantId, scope, key])
+  @@index([tenantId, createdAt])
+  @@map("idempotency_keys")
 }
 
 model Payment {

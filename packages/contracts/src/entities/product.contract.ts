@@ -93,8 +93,10 @@ export type UpdateProductInput = z.infer<typeof UpdateProductSchema>
 export const ListProductsQuerySchema = CursorQuerySchema.extend({
   status: z.enum(PRODUCT_STATUS).optional(),
   categoryId: z.string().uuid().optional(),
-  minPriceCents: z.number().int().optional(),
-  maxPriceCents: z.number().int().optional(),
+  // `coerce` pour la même raison que `limit` (voir CursorQuerySchema) : ces
+  // bornes voyagent dans l'URL, donc sous forme de texte.
+  minPriceCents: z.coerce.number().int().optional(),
+  maxPriceCents: z.coerce.number().int().optional(),
   sortBy: z.enum(['createdAt', 'name', 'price', 'stock']).default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 })

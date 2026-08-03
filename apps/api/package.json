@@ -11,12 +11,15 @@
     "test:unit": "vitest run --dir src --passWithNoTests",
     "test:integration": "vitest run --dir test/integration",
     "test:tenant-isolation": "vitest run --dir test/tenant-isolation",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy",
-    "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio",
-    "clean": "rimraf dist .turbo"
+    "db:generate": "dotenv -e ../../.env -- prisma generate",
+    "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
+    "db:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
+    "db:seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
+    "db:studio": "dotenv -e ../../.env -- prisma studio",
+    "clean": "rimraf dist .turbo",
+    "db:status": "dotenv -e ../../.env -- prisma migrate status",
+    "db:check": "dotenv -e ../../.env -- tsx prisma/supabase/check-connection.ts",
+    "db:provision": "dotenv -e ../../.env -- tsx prisma/supabase/provision-app-role.ts"
   },
   "dependencies": {
     "@nestjs/common": "11.0.1",
@@ -45,6 +48,7 @@
     "prisma": "6.2.1",
     "tsx": "4.19.2",
     "typescript": "5.7.3",
-    "vitest": "2.1.8"
+    "vitest": "2.1.8",
+    "dotenv-cli": "8.0.0"
   }
 }

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import type { CreateProductInput, ListProductsQuery } from '@shopnest/contracts'
 import { PrismaService, tenantScoped } from '../../database/prisma.service'
+import { toProduct } from './products.mapper'
 
 /**
  * doc/03 §2 — LE SEUL endroit où Prisma apparaît pour ce domaine.
@@ -20,11 +21,12 @@ export class ProductsRepository {
     return this.db.product.findFirst({ where: { slug, deletedAt: null } })
   }
 
-  findById(id: string) {
-    return this.db.product.findFirst({
+  async findById(id: string) {
+    const row = await this.db.product.findFirst({
       where: { id, deletedAt: null },
-      include: { variants: true, categories: true },
+      include: { variants: true, categories: { select: { id: true } } },
     })
+    return row ? toProduct(row) : null
   }
 
   /** doc/02 §2.3 — pagination par curseur, jamais par offset. */
@@ -39,19 +41,22 @@ export class ProductsRepository {
       // +1 pour savoir s'il existe une page suivante sans faire de COUNT.
       take: query.limit + 1,
       ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
-      orderBy: { [query.sortBy]: query.sortOrder },
+      // Le contrat expose `price`, la table stocke `price_cents` : trier sur le
+      // nom du contrat produirait un « Unknown argument price » à l'exécution.
+      orderBy: { [SORT_COLUMN[query.sortBy]]: query.sortOrder },
       // include ciblé : évite le N+1 (doc/02 §2.3)
       include: { variants: true },
     })
 
     const hasNext = items.length > query.limit
     const page = hasNext ? items.slice(0, query.limit) : items
-    return { items: page, nextCursor: hasNext ? page.at(-1)?.id : undefined }
+    return { items: page.map(toProduct), nextCursor: hasNext ? page.at(-1)?.id : undefined }
   }
 
-  create(input: CreateProductInput) {
+  async create(input: CreateProductInput) {
     const { categoryIds, price, ...rest } = input
-    return this.db.product.create({
+    const row = await this.db.product.create({
+      include: { variants: true, categories: { select: { id: true } } },
       // tenantId est injecté par l'extension d'isolation — jamais écrit ici.
       data: tenantScoped({
         ...rest,
@@ -60,10 +65,24 @@ export class ProductsRepository {
         categories: { connect: categoryIds.map((id) => ({ id })) },
       }),
     })
+    return toProduct(row)
   }
 
   /** Soft delete : on ne casse jamais l'historique d'une commande (doc/03 §4). */
-  softDelete(id: string) {
-    return this.db.product.update({ where: { id }, data: { deletedAt: new Date() } })
+  async softDelete(id: string) {
+    const row = await this.db.product.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+      include: { variants: true, categories: { select: { id: true } } },
+    })
+    return toProduct(row)
   }
+}
+
+/** Nom du contrat → colonne Prisma, pour les seules clés de tri exposées. */
+const SORT_COLUMN: Record<ListProductsQuery['sortBy'], string> = {
+  createdAt: 'createdAt',
+  name: 'name',
+  price: 'priceCents',
+  stock: 'stock',
 }

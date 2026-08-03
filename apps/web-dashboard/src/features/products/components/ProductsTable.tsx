@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import type { ListProductsQuery, Product } from '@shopnest/contracts'
 import { useTranslation } from '@shopnest/i18n/react'
 import { Button, DataTable, EmptyState, type DataTableColumn } from '@shopnest/ui-web'
+import { countLabelKey } from '../../../lib/count-label'
 import { useProducts, type ProductFilters } from '../api/use-products'
 import { ProductStatusBadge } from './ProductStatusBadge'
 import { StockCell } from './StockCell'
@@ -77,7 +78,7 @@ export function ProductsTable({
         : 'success'
 
   const hasActiveFilter = Boolean(filters.search || filters.status || filters.categoryId)
-  const total = query.data?.pages[0]?.total ?? 0
+  const count = countLabelKey('products.countShown', rows.length, query.data?.pages[0]?.total)
 
   return (
     <div className="flex flex-col gap-md">
@@ -122,7 +123,7 @@ export function ProductsTable({
 
       {status === 'success' && (
         <div className="flex items-center justify-between text-sm text-text-secondary">
-          <span>{tp('products.countShown', rows.length, { shown: rows.length, total })}</span>
+          <span>{tp(count.key, count.count, count.params)}</span>
 
           {query.hasNextPage && (
             <Button

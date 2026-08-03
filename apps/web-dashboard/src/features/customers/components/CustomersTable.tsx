@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import type { CustomerSummary } from '@shopnest/contracts'
 import { useTranslation } from '@shopnest/i18n/react'
 import { Button, DataTable, EmptyState, type DataTableColumn } from '@shopnest/ui-web'
+import { countLabelKey } from '@/lib/count-label'
 import { customerDisplayName } from '@/lib/fake/customers.fixtures'
 import { useCustomers, type CustomerFilters } from '../api/use-customers'
 import { CustomerSegmentBadge } from './CustomerSegmentBadge'
@@ -96,7 +97,7 @@ export function CustomersTable({
         : 'success'
 
   const hasActiveFilter = Boolean(filters.search || filters.segment)
-  const total = query.data?.pages[0]?.total ?? 0
+  const count = countLabelKey('customers.countShown', rows.length, query.data?.pages[0]?.total)
 
   return (
     <div className="flex flex-col gap-md">
@@ -129,7 +130,7 @@ export function CustomersTable({
 
       {status === 'success' && (
         <div className="flex items-center justify-between text-sm text-text-secondary">
-          <span>{tp('customers.countShown', rows.length, { shown: rows.length, total })}</span>
+          <span>{tp(count.key, count.count, count.params)}</span>
           {query.hasNextPage && (
             <Button
               variant="secondary"

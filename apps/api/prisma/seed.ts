@@ -7,7 +7,24 @@ import { authenticator } from 'otplib'
  * Il ne sert pas qu'au développement : c'est la fixture des tests d'isolation
  * (doc/08 §3). Un seul tenant ne permettrait pas de détecter une fuite.
  */
-const prisma = new PrismaClient()
+/**
+ * Le seed passe par la connexion d'ADMINISTRATION, pas par le rôle applicatif.
+ *
+ * Deux raisons, toutes deux bloquantes :
+ *
+ *   1. La RLS est forcée sur les tables scopées. Le rôle applicatif ne peut
+ *      insérer un produit que si `app.tenant_id` est positionné — or le seed
+ *      crée justement les tenants auxquels ces produits appartiennent.
+ *   2. Sur Supabase, `DATABASE_URL` vise le pooler en mode transaction, qui
+ *      convient mal aux gros lots d'écritures d'un seed.
+ *
+ * `DIRECT_URL` est la même variable que celle des migrations : peupler une base
+ * est une opération d'administration, au même titre que la faire évoluer.
+ */
+const adminUrl = process.env.DIRECT_URL ?? process.env.DATABASE_URL
+if (!adminUrl) throw new Error('DIRECT_URL ou DATABASE_URL requis pour le seed.')
+
+const prisma = new PrismaClient({ datasourceUrl: adminUrl })
 
 const ARGON2ID = 2
 const hashOptions = { algorithm: ARGON2ID, memoryCost: 19_456, timeCost: 2, parallelism: 1 }

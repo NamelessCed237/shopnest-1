@@ -42,10 +42,19 @@ export const apiClient = createApiClient({
 
   tokenStorage,
 
-  /** Dashboard vendeur : le tenant vient du sous-domaine. */
+  /**
+   * Dashboard vendeur : le tenant vient du sous-domaine — `alpha.shopnest.app`.
+   *
+   * En développement l'application est servie sur `localhost`, qui n'en a pas.
+   * `VITE_DEV_TENANT` tient lieu de sous-domaine : sans lui l'API répond
+   * « tenant context missing » dès l'écran de connexion, puisqu'un identifiant
+   * n'est unique QUE dans sa boutique. Le backend n'accepte l'en-tête
+   * correspondant qu'en dehors de la production.
+   */
   getTenantId: () => {
     const [sub] = window.location.hostname.split('.')
-    return sub && sub !== 'localhost' ? sub : undefined
+    if (sub && sub !== 'localhost' && sub !== '127') return sub
+    return import.meta.env.VITE_DEV_TENANT || undefined
   },
 
   /**
@@ -61,29 +70,56 @@ export const apiClient = createApiClient({
 })
 
 /**
- * Bascule API réelle / API factice.
+ * Bascule API réelle / API factice, DOMAINE PAR DOMAINE.
  *
- * Tant que la base n'est pas accessible, `VITE_FAKE_API=true` permet de développer
- * et de démontrer les écrans. Le garde-fou ci-dessous rend l'oubli impossible :
- * un build de production embarquant l'API factice échoue au démarrage plutôt que
- * de servir des comptes de démonstration à de vrais utilisateurs.
+ * Un drapeau global ne convient plus : le backend expose aujourd'hui `auth` et
+ * `products`, pas encore les commandes, les clients, les catégories ni les
+ * statistiques (voir doc/09 §11). Un simple `VITE_FAKE_API=false` casserait
+ * donc quatre écrans sur six.
+ *
+ * `VITE_LIVE_DOMAINS` liste les domaines déjà branchés sur Supabase. Chaque
+ * module backend livré ajoute son nom à la liste — et rien d'autre ne change
+ * dans l'application, puisque les écrans sont écrits contre les contrats.
+ *
+ *   VITE_LIVE_DOMAINS=auth,products
  */
-export const USE_FAKE_API = import.meta.env.VITE_FAKE_API === 'true'
+const LIVE_DOMAINS = new Set(
+  (import.meta.env.VITE_LIVE_DOMAINS ?? '')
+    .split(',')
+    .map((domain: string) => domain.trim())
+    .filter(Boolean),
+)
+
+const isLive = (domain: string) => LIVE_DOMAINS.has(domain)
+
+/**
+ * Un écran qui doit signaler « données factices » interroge SON domaine, pas
+ * l'état global : la bannière de connexion listait encore des comptes de
+ * démonstration alors que l'authentification était déjà branchée sur Supabase —
+ * elle invitait à saisir des identifiants qui n'existent plus.
+ */
+export const isFakeDomain = (domain: string) => !isLive(domain)
+
+/** Vrai tant qu'AU MOINS un domaine tourne encore sur des données factices. */
+export const USE_FAKE_API = ['auth', 'products', 'orders', 'customers', 'categories', 'analytics'].some(
+  (domain) => !isLive(domain),
+)
 
 if (USE_FAKE_API && import.meta.env.PROD) {
   throw new Error(
-    'VITE_FAKE_API=true dans un build de production. Retirer ce drapeau avant de déployer.',
+    "Des domaines tournent encore sur l'API factice dans un build de production. " +
+      'Compléter VITE_LIVE_DOMAINS avant de déployer.',
   )
 }
 
 export const api = {
-  auth: USE_FAKE_API ? fakeAuthEndpoints : authEndpoints(apiClient),
-  products: USE_FAKE_API
-    ? { ...fakeProductEndpoints, ...fakeProductMutations, ...fakeVariantMutations }
-    : productsEndpoints(apiClient),
+  auth: isLive('auth') ? authEndpoints(apiClient) : fakeAuthEndpoints,
+  products: isLive('products')
+    ? productsEndpoints(apiClient)
+    : { ...fakeProductEndpoints, ...fakeProductMutations, ...fakeVariantMutations },
 
-  // TODO(#6): endpoints réels commandes et analytics — le contrat est déjà figé
-  // dans @shopnest/contracts, seule cette ligne changera.
+  // TODO(#6): modules backend correspondants — le contrat est déjà figé dans
+  // @shopnest/contracts, il suffira d'ajouter le domaine à VITE_LIVE_DOMAINS.
   orders: fakeOrderEndpoints,
   analytics: fakeAnalyticsEndpoints,
   customers: fakeCustomerEndpoints,
@@ -97,14 +133,18 @@ export const api = {
  * En mode factice, seule cette fonction change : les composants et les écrans
  * qui la consomment sont strictement identiques dans les deux modes.
  */
+const liveEntityResolver = createEntityResolver(apiClient)
+
 export const entityResolver: (
   entity: string,
   params?: Record<string, unknown>,
-) => FetchOptionsFn = USE_FAKE_API
-  ? (entity) => {
-      if (entity !== 'categories') {
-        throw new Error(`[fake] entité non gérée en mode démonstration : ${entity}`)
-      }
-      return ({ search }) => fakeCategoryEndpoints.listOptions(search)
-    }
-  : createEntityResolver(apiClient)
+) => FetchOptionsFn = (entity, params) => {
+  // Résolution PAR ENTITÉ et non par drapeau global : les catégories peuvent
+  // encore être factices pendant que les produits sont déjà servis par l'API.
+  if (isLive(entity)) return liveEntityResolver(entity, params)
+
+  if (entity !== 'categories') {
+    throw new Error(`[fake] entité non gérée en mode démonstration : ${entity}`)
+  }
+  return ({ search }) => fakeCategoryEndpoints.listOptions(search)
+}

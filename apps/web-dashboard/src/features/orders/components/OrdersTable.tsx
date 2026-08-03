@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import type { Order } from '@shopnest/contracts'
 import { useTranslation } from '@shopnest/i18n/react'
 import { Button, DataTable, EmptyState, type DataTableColumn } from '@shopnest/ui-web'
+import { countLabelKey } from '@/lib/count-label'
 import { fakeCustomerName } from '@/lib/fake/orders.fixtures'
 import { useOrders, type OrderFilters } from '../api/use-orders'
 import { OrderStatusBadge } from './OrderStatusBadge'
@@ -84,7 +85,7 @@ export function OrdersTable({
         : 'success'
 
   const hasActiveFilter = Boolean(filters.search || filters.status || filters.paymentMethod)
-  const total = query.data?.pages[0]?.total ?? 0
+  const count = countLabelKey('orders.countShown', rows.length, query.data?.pages[0]?.total)
 
   return (
     <div className="flex flex-col gap-md">
@@ -117,7 +118,7 @@ export function OrdersTable({
 
       {status === 'success' && (
         <div className="flex items-center justify-between text-sm text-text-secondary">
-          <span>{tp('orders.countShown', rows.length, { shown: rows.length, total })}</span>
+          <span>{tp(count.key, count.count, count.params)}</span>
           {query.hasNextPage && (
             <Button
               variant="secondary"

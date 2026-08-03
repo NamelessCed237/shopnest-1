@@ -8,8 +8,7 @@ import type {
   UserRole,
 } from '@shopnest/contracts'
 import { AppException } from '../../common/errors/app.exception'
-import { PrismaService } from '../../database/prisma.service'
-import { TenantContext } from '../../tenancy/tenant-context'
+import { PrismaService, tenantScoped } from '../../database/prisma.service'
 import { PasswordService } from './password.service'
 import { TokenService } from './token.service'
 
@@ -23,12 +22,25 @@ export class AuthService {
     private readonly tokens: TokenService,
   ) {}
 
+  /**
+   * Client scopé au tenant courant.
+   *
+   * Les lectures passent OBLIGATOIREMENT par lui, et non par `this.prisma` :
+   * lui seul positionne `app.tenant_id`, sans quoi la RLS PostgreSQL ne renvoie
+   * aucune ligne et toute connexion échoue en « identifiants invalides » —
+   * symptôme trompeur s'il en est.
+   */
+  private get db() {
+    return this.prisma.withTenantIsolation()
+  }
+
   /** Connexion d'un membre de l'équipe d'un vendeur. Le tenant vient du contexte. */
   async loginTenantUser(input: LoginInput): Promise<LoginResponse> {
-    const tenantId = TenantContext.getTenantIdOrThrow()
-
-    const user = await this.prisma.tenantUser.findUnique({
-      where: { tenantId_email: { tenantId, email: input.email } },
+    // `findFirst` et non `findUnique` : le tenant n'est plus écrit ici, c'est
+    // l'extension d'isolation qui l'ajoute au filtre. L'index composite
+    // (tenant_id, email) sert la requête de la même façon.
+    const user = await this.db.tenantUser.findFirst({
+      where: { email: input.email },
     })
 
     if (!user) {
@@ -53,10 +65,8 @@ export class AuthService {
 
   /** Connexion d'un acheteur — toujours rattachée à la boutique visitée. */
   async loginCustomer(input: LoginInput): Promise<LoginResponse> {
-    const tenantId = TenantContext.getTenantIdOrThrow()
-
-    const customer = await this.prisma.customer.findUnique({
-      where: { tenantId_email: { tenantId, email: input.email } },
+    const customer = await this.db.customer.findFirst({
+      where: { email: input.email },
     })
 
     if (!customer?.passwordHash) {
@@ -115,10 +125,8 @@ export class AuthService {
   }
 
   async registerCustomer(input: RegisterCustomerInput): Promise<LoginResponse> {
-    const tenantId = TenantContext.getTenantIdOrThrow()
-
-    const existing = await this.prisma.customer.findUnique({
-      where: { tenantId_email: { tenantId, email: input.email } },
+    const existing = await this.db.customer.findFirst({
+      where: { email: input.email },
     })
 
     // Un compte peut déjà exister sans mot de passe (commande en invité) :
@@ -132,18 +140,20 @@ export class AuthService {
     const passwordHash = await this.passwords.hash(input.password)
 
     const customer = existing
-      ? await this.prisma.customer.update({
+      ? await this.db.customer.update({
           where: { id: existing.id },
           data: { passwordHash, firstName: input.firstName, lastName: input.lastName },
         })
-      : await this.prisma.customer.create({
-          data: {
-            tenantId,
+      : await this.db.customer.create({
+          // `tenantId` est FORCÉ par l'extension : ne jamais l'écrire ici, ce
+          // serait rouvrir la porte à une valeur venue du client. `tenantScoped`
+          // ne fait que l'annoncer au typage (doc/02 §4).
+          data: tenantScoped({
             email: input.email,
             passwordHash,
             firstName: input.firstName,
             lastName: input.lastName,
-          },
+          }),
         })
 
     return this.respond({

@@ -24,10 +24,21 @@ export class TenantsService {
   async findByIdentifier(identifier: string): Promise<ResolvedTenant | null> {
     const tenant = await this.prisma.tenant.findFirst({
       where: {
-        OR: [{ slug: identifier }, { customDomain: identifier }, { id: identifier }],
+        OR: [
+          { slug: identifier },
+          { customDomain: identifier },
+          // La branche `id` n'est ajoutée que si l'identifiant EST un UUID.
+          // PostgreSQL rejette la comparaison d'une colonne uuid avec une
+          // chaîne qui n'en est pas une : Prisma remonte alors une P2023 et la
+          // requête part en 500 — au lieu de simplement ne rien trouver. Tout
+          // accès par sous-domaine, le cas nominal du storefront, échouerait.
+          ...(UUID.test(identifier) ? [{ id: identifier }] : []),
+        ],
       },
       select: { id: true, slug: true, status: true, planCode: true },
     })
     return tenant as ResolvedTenant | null
   }
 }
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

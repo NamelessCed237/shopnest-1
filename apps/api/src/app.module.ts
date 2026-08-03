@@ -14,7 +14,14 @@ import { TenantResolverMiddleware } from './tenancy/tenant-resolver.middleware'
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validate: validateEnv,
+      // Le .env vit à la RACINE du monorepo, pas dans apps/api : un seul
+      // fichier de secrets pour tout le dépôt, donc un seul endroit à
+      // sécuriser et aucun risque de divergence entre applications.
+      envFilePath: ['../../.env'],
+    }),
     EventEmitterModule.forRoot(),
     // doc/03 §5 — limite générale ; les endpoints sensibles ont la leur via @Throttle.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 300 }]),

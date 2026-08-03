@@ -2,7 +2,7 @@ import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useTranslation } from '@shopnest/i18n/react'
 import { Alert } from '@shopnest/ui-web'
 import { LoginForm } from '@/features/auth'
-import { USE_FAKE_API } from '@/lib/api'
+import { isFakeDomain } from '@/lib/api'
 import { FAKE_PASSWORD, fakeAccounts } from '@/lib/fake/fixtures'
 
 /**
@@ -30,7 +30,9 @@ export function LoginPage() {
           <p className="text-sm text-text-secondary">{t('auth.signInSubtitle')}</p>
         </header>
 
-        {USE_FAKE_API && (
+        {/* Seul le domaine `auth` compte ici : c'est lui qui décide si les
+            comptes annoncés ci-dessous existent réellement. */}
+        {isFakeDomain('auth') && (
           <div className="mb-md">
             <Alert variant="warning" title="Mode démonstration">
               Données factices, aucune base connectée. Comptes disponibles :{' '}

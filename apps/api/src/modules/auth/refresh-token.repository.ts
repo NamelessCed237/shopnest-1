@@ -83,9 +83,20 @@ export class RefreshTokenRepository {
    * le compte supprimé depuis l'émission, le refresh doit le refléter immédiatement.
    */
   async resolveUser(token: StoredRefreshToken): Promise<SessionUser> {
+    // `tenant_users` et `customers` sont, eux, des tables SCOPÉES : les lire
+    // avec le client brut les rend invisibles sous RLS, et le rafraîchissement
+    // conclut à tort que le compte a été supprimé. Le tenant est porté par le
+    // token lui-même — c'est le seul endroit où on le connaît à ce stade.
+    const scoped = (audience: 'tenant' | 'customer') => {
+      if (!token.tenantId) {
+        throw new AppException('UNAUTHENTICATED', `${audience} token without tenant`)
+      }
+      return this.prisma.forTenant(token.tenantId)
+    }
+
     switch (token.audience) {
       case 'tenant': {
-        const user = await this.prisma.tenantUser.findUnique({ where: { id: token.userId } })
+        const user = await scoped('tenant').tenantUser.findUnique({ where: { id: token.userId } })
         if (!user) throw new AppException('UNAUTHENTICATED', 'tenant user no longer exists')
         return {
           id: user.id,
@@ -96,7 +107,9 @@ export class RefreshTokenRepository {
         }
       }
       case 'customer': {
-        const customer = await this.prisma.customer.findUnique({ where: { id: token.userId } })
+        const customer = await scoped('customer').customer.findUnique({
+          where: { id: token.userId },
+        })
         if (!customer) throw new AppException('UNAUTHENTICATED', 'customer no longer exists')
         return {
           id: customer.id,

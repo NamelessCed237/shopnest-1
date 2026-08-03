@@ -7,7 +7,14 @@ import { z } from 'zod'
  */
 export const CursorQuerySchema = z.object({
   cursor: z.string().optional(),
-  limit: z.number().int().min(1).max(100).default(20),
+  /**
+   * `coerce` : ce schéma valide aussi une CHAÎNE DE REQUÊTE, où tout est texte.
+   * Avec `z.number()` seul, `?limit=20` est rejeté par le backend en 422 alors
+   * que le client a bien envoyé ce qu'on lui demandait — et l'erreur ne se voit
+   * qu'à l'exécution, jamais à la compilation, puisque le type inféré reste
+   * `number` des deux côtés.
+   */
+  limit: z.coerce.number().int().min(1).max(100).default(20),
   search: z.string().max(200).optional(),
 })
 export type CursorQuery = z.infer<typeof CursorQuerySchema>

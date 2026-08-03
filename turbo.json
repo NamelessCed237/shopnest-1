@@ -20,6 +20,13 @@
       ]
     },
     "dev": {
+      // L'API tourne sur Node après compilation tsc : elle consomme le `dist`
+      // des paquets partagés, pas leur source. Sans cette dépendance, un clone
+      // frais démarre sur un ERR_MODULE_NOT_FOUND pointant vers un `.js` que
+      // personne n'a encore généré. Les apps Vite, elles, importent la source
+      // (condition `development` du champ `exports`) : le rechargement à chaud
+      // reste immédiat.
+      "dependsOn": ["^build"],
       "cache": false,
       "persistent": true
     },

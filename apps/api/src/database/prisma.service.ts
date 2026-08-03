@@ -16,6 +16,7 @@ import { TenantContext } from '../tenancy/tenant-context'
  */
 export const TENANT_SCOPED_MODELS = new Set([
   'TenantUser',
+  'IdempotencyKey',
   'Product',
   'ProductVariant',
   'Category',
@@ -92,7 +93,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
               typed.create = { ...(typed.create as object), tenantId }
             }
 
-            return query(typed)
+            return this.withRlsContext(tenantId, query(typed))
           },
         },
       },
@@ -100,15 +101,59 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
   }
 
   /**
-   * doc/03 §3.4 — DEUXIÈME BARRIÈRE : Row Level Security PostgreSQL.
-   * Le middleware applicatif peut être contourné par une requête SQL brute ;
-   * la RLS non. Il faut que les deux tombent pour qu'une fuite se produise.
+   * Client positionnant le contexte RLS pour un tenant DONNÉ, sans passer par
+   * `TenantContext`.
+   *
+   * Réservé aux rares chemins qui s'exécutent hors du contexte de requête : le
+   * rafraîchissement de session lit `tenant_users` avant même de savoir quelle
+   * boutique est visée — l'information vient du refresh token lui-même.
+   *
+   * Contrairement à `withTenantIsolation()`, ce client N'INJECTE PAS de filtre
+   * `tenantId` : seule la RLS scope la requête. À n'utiliser que sur des accès
+   * par identifiant unique.
    */
-  async runWithRls<T>(tenantId: string, fn: () => Promise<T>): Promise<T> {
-    return this.$transaction(async (tx) => {
-      await tx.$executeRawUnsafe(`SET LOCAL app.tenant_id = '${assertUuid(tenantId)}'`)
-      return fn()
+  forTenant(tenantId: string) {
+    return this.$extends({
+      query: {
+        $allModels: {
+          $allOperations: ({ model, args, query }) =>
+            model && TENANT_SCOPED_MODELS.has(model)
+              ? this.withRlsContext(tenantId, query(args))
+              : query(args),
+        },
+      },
     })
+  }
+
+  /**
+   * doc/03 §3.4 — DEUXIÈME BARRIÈRE : Row Level Security PostgreSQL.
+   *
+   * Le middleware applicatif peut être contourné par une requête SQL brute ; la
+   * RLS non. Il faut que les DEUX tombent pour qu'une fuite se produise.
+   *
+   * Trois contraintes dictent cette forme, qui surprend à la lecture :
+   *
+   *   1. La politique lit `current_setting('app.tenant_id')`. Ce réglage vit
+   *      dans une SESSION — or le pooler Supabase en mode transaction recycle
+   *      les connexions entre deux requêtes. Un réglage persistant serait donc
+   *      hérité par la requête suivante, d'un AUTRE tenant : exactement la
+   *      fuite que la RLS doit empêcher. D'où `set_config(..., true)`, dont la
+   *      portée est la transaction.
+   *   2. Il faut donc que le réglage et la requête partagent une transaction.
+   *   3. `query()` produit une PrismaPromise déjà liée à ce client ; on ne peut
+   *      pas la rejouer sur un client de transaction interactive. La forme
+   *      « tableau » de `$transaction` accepte en revanche des PrismaPromise
+   *      existantes et les exécute dans une même transaction — c'est le motif
+   *      documenté par Prisma pour la RLS.
+   */
+  private async withRlsContext<T>(tenantId: string, pending: Promise<T>): Promise<T> {
+    const [, result] = await this.$transaction([
+      this.$executeRawUnsafe(`SELECT set_config('app.tenant_id', '${assertUuid(tenantId)}', true)`),
+      // `query()` est typée `Promise` mais renvoie bien une PrismaPromise à
+      // l'exécution : c'est ce que la forme tableau de `$transaction` attend.
+      pending as unknown as ReturnType<PrismaClient['$executeRawUnsafe']>,
+    ])
+    return result as T
   }
 }
 

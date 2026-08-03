@@ -8,6 +8,10 @@ export const en: Record<string, string> = {
   'common.loadMore': 'Load more',
   'common.demoMode': 'Demo',
 
+  // Used when the total is UNKNOWN — see the French file for the reasoning.
+  'common.countLoaded_one': '{shown} item loaded',
+  'common.countLoaded_other': '{shown} items loaded',
+
   'nav.main': 'Main navigation',
   'nav.overview': 'Overview',
   'nav.products': 'Products',

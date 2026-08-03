@@ -9,6 +9,12 @@ export const fr: Record<string, string> = {
   'common.loadMore': 'Charger plus',
   'common.demoMode': 'Démonstration',
 
+  // Utilisé quand le total est INCONNU : la pagination par curseur ne fait pas
+  // de COUNT, trop coûteux sur une grande table (doc/02 §2.3). Annoncer « sur
+  // 0 » serait faux, et « sur 5 » laisserait croire qu'il n'y a rien de plus.
+  'common.countLoaded_one': '{shown} élément chargé',
+  'common.countLoaded_other': '{shown} éléments chargés',
+
   'nav.main': 'Navigation principale',
   'nav.overview': "Vue d'ensemble",
   'nav.products': 'Produits',

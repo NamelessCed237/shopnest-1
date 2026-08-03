@@ -1,12 +1,10 @@
+@import '@shopnest/tokens/css/theme.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    color-scheme: light dark;
-  }
-
   /* doc/04 §8 — le focus est toujours visible. */
   :focus-visible {
     outline: 2px solid theme('colors.border.focus');

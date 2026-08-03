@@ -4,6 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ShopNest — Boutique</title>
+    <script>
+      // Applique le theme memorise AVANT le premier rendu : sinon la page
+      // s'affiche en clair puis bascule, un flash blanc a chaque chargement.
+      (function () {
+        try {
+          var p = localStorage.getItem('shopnest.theme')
+          if (p === 'light' || p === 'dark') document.documentElement.setAttribute('data-theme', p)
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

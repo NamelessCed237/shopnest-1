@@ -1,15 +1,41 @@
+@import '@shopnest/tokens/css/theme.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    color-scheme: light dark;
-  }
-
   /* doc/04 §8 — le focus est toujours visible. */
   :focus-visible {
     outline: 2px solid theme('colors.border.focus');
     outline-offset: 2px;
+  }
+}
+
+/*
+ * Impression — utilisée par l'action « Facture » du détail commande.
+ * On retire la coquille applicative : une facture imprimée avec la barre de
+ * navigation et la sidebar est inexploitable pour un client.
+ */
+@media print {
+  aside,
+  header nav,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  /* Les cartes perdent leur ombre et leur fond : de l'encre pour rien. */
+  section {
+    border-color: #999 !important;
+    box-shadow: none !important;
+  }
+
+  /* Une ligne de tableau ne doit pas être coupée entre deux pages. */
+  tr {
+    break-inside: avoid;
   }
 }

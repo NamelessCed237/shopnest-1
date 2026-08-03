@@ -1,15 +1,8 @@
 import { useState, type ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { AppError } from '@shopnest/contracts'
-import { I18nProvider } from '@shopnest/i18n/react'
-import type { Locale } from '@shopnest/i18n'
-
-const SUPPORTED: Locale[] = ['fr', 'en']
-
-function detectLocale(): Locale {
-  const short = navigator.language.slice(0, 2) as Locale
-  return SUPPORTED.includes(short) ? short : 'fr'
-}
+import { I18nProvider, localStorageAdapter } from '@shopnest/i18n/react'
+import { ThemeProvider } from '@shopnest/ui-web'
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -31,7 +24,11 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <I18nProvider locale={detectLocale()}>{children}</I18nProvider>
+      {/* La langue et le thème sont mémorisés : deux préférences d'affichage
+          qui doivent survivre au rechargement comme à la déconnexion. */}
+      <I18nProvider storage={localStorageAdapter}>
+        <ThemeProvider>{children}</ThemeProvider>
+      </I18nProvider>
     </QueryClientProvider>
   )
 }

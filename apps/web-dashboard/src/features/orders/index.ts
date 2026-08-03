@@ -1,1 +1,13 @@
-export {}
+/** doc/04 §2 — SEUL point d'entrée public de la feature. */
+export { OrdersTable } from './components/OrdersTable'
+export { OrderFilters } from './components/OrderFilters'
+export { OrderStatusBadge } from './components/OrderStatusBadge'
+export { PaymentMethodLabel } from './components/PaymentMethodLabel'
+export { OrderProgress } from './components/OrderProgress'
+export { OrderItemsCard } from './components/OrderItemsCard'
+export { OrderTotalsCard } from './components/OrderTotalsCard'
+export { OrderPaymentCard } from './components/OrderPaymentCard'
+export { OrderActions } from './components/OrderActions'
+export { RefundDialog } from './components/RefundDialog'
+export { useUpdateOrderStatus, useRefundOrder } from './api/use-order-mutations'
+export { useOrders, useOrder, type OrderFilters as OrderFiltersValue } from './api/use-orders'

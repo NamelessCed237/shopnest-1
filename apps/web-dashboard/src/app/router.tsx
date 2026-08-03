@@ -1,3 +1,4 @@
+import { lazy } from 'react'
 import {
   createRootRoute,
   createRoute,
@@ -6,19 +7,43 @@ import {
   redirect,
 } from '@tanstack/react-router'
 import { useSessionStore } from '@/features/auth'
+import { AppShell } from '@/components/layout/AppShell'
 import { LoginPage } from './routes/login.route'
-import { DashboardPage } from './routes/dashboard.route'
+import { LandingPage } from './routes/landing.route'
+import {
+  LoginSearchSchema,
+  OrdersSearchSchema,
+  CustomersSearchSchema,
+  OverviewSearchSchema,
+  ProductsSearchSchema,
+} from './search-schemas'
 
 const rootRoute = createRootRoute({ component: Outlet })
+
+/**
+ * Accueil PUBLIC. Un visiteur connecte est renvoye vers son tableau de bord :
+ * lui reservir la page marketing a chaque ouverture serait un detour inutile.
+ */
+const landingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/',
+  component: LandingPage,
+  beforeLoad: () => {
+    if (useSessionStore.getState().status === 'authenticated') {
+      throw redirect({ to: '/dashboard' })
+    }
+  },
+})
 
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
   component: LoginPage,
+  validateSearch: LoginSearchSchema,
   beforeLoad: () => {
     // Déjà connecté : on ne réaffiche pas le formulaire.
     if (useSessionStore.getState().status === 'authenticated') {
-      throw redirect({ to: '/' })
+      throw redirect({ to: '/dashboard' })
     }
   },
 })
@@ -36,18 +61,101 @@ const authenticatedRoute = createRoute({
       throw redirect({ to: '/login', search: { redirect: location.href } })
     }
   },
-  component: Outlet,
+  component: AppShell,
 })
 
-const dashboardRoute = createRoute({
+/**
+ * doc/04 §6 — chargement paresseux systématique : le bundle de l'écran de
+ * connexion ne porte ni le graphique, ni les tableaux.
+ */
+const lazyRoute = <T extends string>(loader: () => Promise<Record<T, React.ComponentType>>, key: T) =>
+  lazy(() => loader().then((module) => ({ default: module[key] })))
+
+const OverviewPage = lazyRoute(() => import('./routes/overview.route'), 'OverviewPage')
+const ProductsPage = lazyRoute(() => import('./routes/products.route'), 'ProductsPage')
+const ProductCreatePage = lazyRoute(() => import('./routes/product-form.route'), 'ProductCreatePage')
+const ProductEditPage = lazyRoute(() => import('./routes/product-form.route'), 'ProductEditPage')
+const CategoriesPage = lazyRoute(() => import('./routes/categories.route'), 'CategoriesPage')
+const OrdersPage = lazyRoute(() => import('./routes/orders.route'), 'OrdersPage')
+const CustomersPage = lazyRoute(() => import('./routes/customers.route'), 'CustomersPage')
+const OrderDetailPage = lazyRoute(() => import('./routes/order-detail.route'), 'OrderDetailPage')
+const CustomerDetailPage = lazyRoute(
+  () => import('./routes/customer-detail.route'),
+  'CustomerDetailPage',
+)
+
+const overviewRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
-  path: '/',
-  component: DashboardPage,
+  path: '/dashboard',
+  validateSearch: OverviewSearchSchema,
+  component: OverviewPage,
+})
+
+const productsRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/products',
+  validateSearch: ProductsSearchSchema,
+  component: ProductsPage,
+})
+
+const productCreateRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/products/new',
+  component: ProductCreatePage,
+})
+
+const productEditRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/products/$productId',
+  component: ProductEditPage,
+})
+
+const categoriesRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/categories',
+  component: CategoriesPage,
+})
+
+const ordersRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/orders',
+  validateSearch: OrdersSearchSchema,
+  component: OrdersPage,
+})
+
+const customersRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/customers',
+  validateSearch: CustomersSearchSchema,
+  component: CustomersPage,
+})
+
+const orderDetailRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/orders/$orderId',
+  component: OrderDetailPage,
+})
+
+const customerDetailRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/customers/$customerId',
+  component: CustomerDetailPage,
 })
 
 const routeTree = rootRoute.addChildren([
+  landingRoute,
   loginRoute,
-  authenticatedRoute.addChildren([dashboardRoute]),
+  authenticatedRoute.addChildren([
+    overviewRoute,
+    productsRoute,
+    productCreateRoute,
+    productEditRoute,
+    categoriesRoute,
+    ordersRoute,
+    customersRoute,
+    customerDetailRoute,
+    orderDetailRoute,
+  ]),
 ])
 
 export const router = createRouter({ routeTree })

@@ -1,4 +1,4 @@
-import { useNavigate } from '@tanstack/react-router'
+import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useTranslation } from '@shopnest/i18n/react'
 import { Alert } from '@shopnest/ui-web'
 import { LoginForm } from '@/features/auth'
@@ -12,6 +12,15 @@ import { FAKE_PASSWORD, fakeAccounts } from '@/lib/fake/fixtures'
 export function LoginPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { redirect } = useSearch({ from: '/login' })
+
+  /**
+   * On revient là où l'utilisateur voulait aller, pas systématiquement à l'accueil.
+   * Le schéma de route a déjà rejeté toute valeur non interne : pas de
+   * redirection ouverte possible depuis l'URL.
+   */
+  const goAfterLogin = () =>
+    void navigate({ to: redirect ?? '/dashboard', replace: true })
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-surface-raised p-md">
@@ -31,7 +40,7 @@ export function LoginPage() {
           </div>
         )}
 
-        <LoginForm onSuccess={() => void navigate({ to: '/', replace: true })} />
+        <LoginForm onSuccess={goAfterLogin} />
 
         <p className="mt-lg text-center text-xs text-text-secondary">
           {t('auth.forgotPasswordHint')}

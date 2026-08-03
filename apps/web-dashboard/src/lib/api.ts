@@ -1,5 +1,20 @@
-import { authEndpoints, createApiClient, createEntityResolver } from '@shopnest/api-client'
-import { fakeAuthEndpoints } from './fake/fake-api'
+import type { FetchOptionsFn } from '@shopnest/contracts'
+import {
+  authEndpoints,
+  createApiClient,
+  createEntityResolver,
+  productsEndpoints,
+} from '@shopnest/api-client'
+import {
+  fakeAuthEndpoints,
+  fakeCategoryEndpoints,
+  fakeProductEndpoints,
+  fakeProductMutations,
+  fakeVariantMutations,
+} from './fake/fake-api'
+import { fakeAnalyticsEndpoints, fakeOrderEndpoints } from './fake/fake-orders-api'
+import { fakeCustomerEndpoints } from './fake/fake-customers-api'
+import { fakeCategoryCrudEndpoints } from './fake/fake-categories-api'
 
 /**
  * doc/06 §3 — le client est plateforme-agnostique ; c'est ICI qu'on injecte
@@ -63,10 +78,33 @@ if (USE_FAKE_API && import.meta.env.PROD) {
 
 export const api = {
   auth: USE_FAKE_API ? fakeAuthEndpoints : authEndpoints(apiClient),
+  products: USE_FAKE_API
+    ? { ...fakeProductEndpoints, ...fakeProductMutations, ...fakeVariantMutations }
+    : productsEndpoints(apiClient),
+
+  // TODO(#6): endpoints réels commandes et analytics — le contrat est déjà figé
+  // dans @shopnest/contracts, seule cette ligne changera.
+  orders: fakeOrderEndpoints,
+  analytics: fakeAnalyticsEndpoints,
+  customers: fakeCustomerEndpoints,
+  categories: fakeCategoryCrudEndpoints,
 }
 
 /**
  * doc/07 §3.1 — permet d'écrire `<Dropdown source={{ entity: 'categories' }} />`
  * sans que le composant connaisse le détail HTTP.
+ *
+ * En mode factice, seule cette fonction change : les composants et les écrans
+ * qui la consomment sont strictement identiques dans les deux modes.
  */
-export const entityResolver = createEntityResolver(apiClient)
+export const entityResolver: (
+  entity: string,
+  params?: Record<string, unknown>,
+) => FetchOptionsFn = USE_FAKE_API
+  ? (entity) => {
+      if (entity !== 'categories') {
+        throw new Error(`[fake] entité non gérée en mode démonstration : ${entity}`)
+      }
+      return ({ search }) => fakeCategoryEndpoints.listOptions(search)
+    }
+  : createEntityResolver(apiClient)

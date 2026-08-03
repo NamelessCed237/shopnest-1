@@ -326,8 +326,15 @@ model Product {
 Règles :
 
 - Tables et colonnes en `snake_case` (`@map`), modèles Prisma en `PascalCase`.
-- **Montants en entiers de centimes**, jamais en flottant. Le type `Money` de `contracts`
+- **Montants en entiers d'unités mineures**, jamais en flottant. Le type `Money` de `contracts`
   transporte `{ amountCents: number; currency: string }`.
+
+  ⚠️ Le nombre d'unités mineures par unité majeure **dépend de la devise** : 100 pour EUR,
+  mais **1 pour XAF, XOF et JPY** (devises sans décimale), 1000 pour KWD. Diviser
+  systématiquement par 100 à l'affichage produit une erreur d'un facteur 100 sur toute
+  l'Afrique centrale et de l'Ouest — précisément les marchés visés. Le formatage passe
+  donc obligatoirement par `formatMoney` de `@shopnest/i18n`, qui interroge `Intl` plutôt
+  que de maintenir une table ISO 4217 à la main.
 - Tout index sur une table scopée commence par `tenant_id`.
 - Toute contrainte d'unicité métier est `@@unique([tenantId, …])`.
 - Soft delete via `deletedAt` sur les entités référencées par des commandes (on ne casse

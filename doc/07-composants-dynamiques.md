@@ -51,6 +51,25 @@ de filtrage ou de la gestion de clavier, ce code est au mauvais endroit — voir
 
 `value` + `onChange` (contrôlé) ou `defaultValue` (non contrôlé). Jamais l'un des deux seulement.
 
+**Et le mode de sélection DISCRIMINE le type.** Les props d'un composant à
+sélection multiple forment une union sur `multiple` :
+
+```ts
+type DropdownProps<T> =
+  | { multiple?: false; value?: T;   onChange?: (v: T | undefined) => void; … }
+  | { multiple: true;   value?: T[]; onChange?: (v: T[]) => void;           … }
+```
+
+La signature commune qu'on écrit spontanément — `value?: T | T[]` — force chaque
+appelant à caster (`value as ProductStatus | undefined`) pour récupérer un type
+utilisable. Passer un champ en sélection multiple devient alors une modification
+manuelle propagée de proche en proche, que le compilateur ne guide pas : c'est
+exactement ce qu'on veut éviter.
+
+⚠️ Un wrapper métier ne doit PAS utiliser `Omit<DropdownProps, …>` : `Omit`
+fusionne d'abord les membres de l'union avant de retirer la clé, et détruit la
+discrimination. Utiliser `DropdownWrapperProps`, qui distribue.
+
 ### R5 — Les quatre états de données sont rendus par le composant lui-même
 
 Chargement, erreur (avec réessai), vide, succès. Un `Dropdown` qui affiche une liste vide
@@ -434,7 +453,7 @@ dans la feature concernée — pas dans `ui-web` :
 
 ```tsx
 // apps/web-dashboard/src/features/categories/components/CategorySelect.tsx
-export function CategorySelect(props: Omit<DropdownProps<string>, 'source' | 'label'>) {
+export function CategorySelect(props: DropdownWrapperProps<string, 'source' | 'label'>) {
   const { t } = useTranslation()
   return (
     <Dropdown
@@ -516,6 +535,12 @@ function CategoryDropdown() {
 // ❌ Une variante par cas d'usage
 <DropdownWithSearch /> <DropdownAsync /> <DropdownMulti />
 // → Ce sont des props : searchable, source, multiple.
+
+// ❌ Une icône en émoji
+<span aria-hidden="true">💳</span>
+// → <Icon name="credit-card" /> : un émoji est dessiné par le SYSTÈME, ignore
+//   `currentColor` (donc le thème et les états d'erreur), décale la ligne de
+//   base, et manque purement et simplement sur les systèmes anciens.
 
 // ❌ Style injecté de l'extérieur
 <Dropdown className="!bg-red-500 !rounded-none" />

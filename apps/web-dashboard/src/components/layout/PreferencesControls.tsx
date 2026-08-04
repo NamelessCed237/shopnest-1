@@ -1,3 +1,4 @@
+import type { Locale } from '@shopnest/i18n'
 import { useTranslation } from '@shopnest/i18n/react'
 import { LanguageSwitcher, ThemeToggle, type LanguageOption } from '@shopnest/ui-web'
 

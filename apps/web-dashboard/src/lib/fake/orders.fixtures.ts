@@ -154,11 +154,20 @@ export const fakeOrders: Order[] = Array.from({ length: ORDER_COUNT }, (_, index
     Math.floor(CUSTOMER_COUNT * rng() ** 3.4),
     CUSTOMER_COUNT - 1,
   )
+  const customerId = `66666666-6666-4666-8666-${String(customerIndex).padStart(12, '0')}`
+  // Résolution via la table importée, et NON via `fakeCustomerName` : celle-ci
+  // est déclarée plus bas dans ce fichier, donc encore en zone morte pendant
+  // l'évaluation de ce littéral.
+  const customer = customerById.get(customerId)
 
   return {
     id: `55555555-5555-4555-8555-${String(index).padStart(12, '0')}`,
     reference: `CMD-${String(2601 + index).padStart(5, '0')}`,
-    customerId: `66666666-6666-4666-8666-${String(customerIndex).padStart(12, '0')}`,
+    customerId,
+    // Le nom est porté par la commande, comme le fait l'API réelle : les écrans
+    // ne doivent pas le résoudre eux-mêmes, sinon ils cesseraient de fonctionner
+    // en passant sur Supabase.
+    ...(customer ? { customerName: customerDisplayName(customer) } : {}),
     status,
     items,
     subtotal: { amountCents: subtotalCents, currency: CURRENCY },
@@ -185,5 +194,7 @@ export const fakeCustomerName = (customerId: string | undefined): string => {
   return customer ? customerDisplayName(customer) : 'Client'
 }
 
-/** Une commande compte dans le chiffre d'affaires seulement si elle est encaissée. */
-export const REVENUE_STATUSES: OrderStatus[] = ['paid', 'preparing', 'shipped', 'delivered']
+// La règle vit dans @shopnest/contracts : le backend calcule le chiffre
+// d'affaires avec exactement la même liste, sinon le mode démonstration et la
+// production n'annonceraient pas le même montant.
+export { REVENUE_STATUSES } from '@shopnest/contracts'

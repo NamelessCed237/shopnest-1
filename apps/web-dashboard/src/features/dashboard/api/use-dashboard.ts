@@ -1,6 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { analyticsKeys, orderKeys, productKeys } from '@shopnest/api-client'
-import type { AppError, DashboardRange, DashboardSummary, Order, Product } from '@shopnest/contracts'
+import type {
+  AppError,
+  DashboardRange,
+  DashboardSummary,
+  LowStockProduct,
+  Order,
+} from '@shopnest/contracts'
 import { api } from '@/lib/api'
 
 export function useDashboardSummary(range: DashboardRange) {
@@ -22,7 +28,7 @@ export function useRecentOrders() {
 }
 
 export function useLowStockProducts() {
-  return useQuery<Product[], AppError>({
+  return useQuery<LowStockProduct[], AppError>({
     queryKey: [...productKeys.all, 'low-stock'],
     queryFn: () => api.analytics.lowStockProducts(5),
     staleTime: 60_000,

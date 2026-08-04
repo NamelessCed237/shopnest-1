@@ -51,19 +51,45 @@ export const lightTheme: Theme = {
     onPrimary: '#FFFFFF',
   },
   surface: {
-    base: '#FFFFFF',
-    raised: '#F8FAFC',
-    sunken: '#EEF2F6',
+    /*
+     * PAS de blanc pur, et pour la raison exacte qui fait éviter le noir pur en
+     * mode sombre (voir plus bas) : sur un écran lumineux, une grande étendue de
+     * #FFFFFF renvoie toute la luminosité de la dalle et fatigue en lecture
+     * prolongée. Un dashboard reste ouvert la journée, ce n'est pas une page
+     * qu'on parcourt trente secondes.
+     *
+     * L'ÉCHELLE est celle de l'application, à ne pas inverser :
+     *   · `base`   — les cartes et panneaux, la surface la plus claire ;
+     *   · `raised` — le fond de page derrière les cartes (AppShell) ;
+     *   · `sunken` — les creux : pistes de jauge, squelettes de chargement.
+     *
+     * Le fond de page est donc PLUS SOMBRE que les cartes, ce qui les détache.
+     * Il est ici assombri d'un cran par rapport à l'ancien #F8FAFC : c'est la
+     * plus grande étendue de l'écran, donc celle qui pèse le plus dans la
+     * sensation d'éblouissement.
+     */
+    base: '#FCFDFE',
+    raised: '#EFF3F7',
+    sunken: '#E2E8F0',
     overlay: 'rgba(15, 23, 42, 0.55)',
   },
   border: {
-    base: '#E2E8F0',
+    base: '#DDE3EA',
     strong: '#94A3B8',
     focus: '#10B981',
   },
   text: {
-    primary: '#0F172A',
-    secondary: '#475569',
+    /*
+     * Ardoise très sombre plutôt que quasi-noir : #0F172A sur blanc pur donnait
+     * ~17,8:1, bien au-delà des 7:1 exigés par le niveau AAA. Ce n'est pas un
+     * gain de lisibilité, c'est un excès de contraste — celui qui fait
+     * « vibrer » le texte et fatigue l'œil.
+     *
+     * Le couple retenu tient ~14:1 sur une carte : toujours AAA, sans la
+     * dureté.
+     */
+    primary: '#1E293B',
+    secondary: '#4A5A70',
     disabled: '#94A3B8',
     inverse: '#FFFFFF',
   },

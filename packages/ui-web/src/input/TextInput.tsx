@@ -1,5 +1,6 @@
 import { forwardRef, useId, useState, type InputHTMLAttributes } from 'react'
 import { cn } from '../lib/cn.js'
+import { Icon } from '../icon/Icon.js'
 
 export interface TextInputProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, 'className' | 'size'> {
@@ -60,7 +61,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(function T
             aria-label={revealed ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
             className="absolute inset-y-0 end-0 px-sm text-sm text-text-secondary"
           >
-            {revealed ? '🙈' : '👁'}
+            <Icon name={revealed ? 'eye-off' : 'eye'} />
           </button>
         )}
       </div>

@@ -3,6 +3,7 @@
  * Jumeau natif : @shopnest/ui-native. Mêmes props, rendu différent (doc/06 §1).
  */
 
+export * from './icon/Icon.js'
 export * from './badge/Badge.js'
 export * from './button/Button.js'
 export * from './card/Card.js'

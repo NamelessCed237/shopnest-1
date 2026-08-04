@@ -1,9 +1,15 @@
 import type { FetchOptionsFn } from '@shopnest/contracts'
 import {
+  analyticsEndpoints,
   authEndpoints,
+  billingEndpoints,
+  categoriesEndpoints,
   createApiClient,
   createEntityResolver,
+  customersEndpoints,
+  ordersEndpoints,
   productsEndpoints,
+  settingsEndpoints,
 } from '@shopnest/api-client'
 import {
   fakeAuthEndpoints,
@@ -118,12 +124,21 @@ export const api = {
     ? productsEndpoints(apiClient)
     : { ...fakeProductEndpoints, ...fakeProductMutations, ...fakeVariantMutations },
 
-  // TODO(#6): modules backend correspondants — le contrat est déjà figé dans
-  // @shopnest/contracts, il suffira d'ajouter le domaine à VITE_LIVE_DOMAINS.
-  orders: fakeOrderEndpoints,
-  analytics: fakeAnalyticsEndpoints,
-  customers: fakeCustomerEndpoints,
-  categories: fakeCategoryCrudEndpoints,
+  orders: isLive('orders') ? ordersEndpoints(apiClient) : fakeOrderEndpoints,
+  analytics: isLive('analytics') ? analyticsEndpoints(apiClient) : fakeAnalyticsEndpoints,
+  customers: isLive('customers') ? customersEndpoints(apiClient) : fakeCustomerEndpoints,
+  categories: isLive('categories') ? categoriesEndpoints(apiClient) : fakeCategoryCrudEndpoints,
+
+  /**
+   * Facturation et paramètres n'ont PAS d'équivalent factice.
+   *
+   * Ils décrivent la boutique elle-même — plan, quotas, commissions, domaine —
+   * pas son catalogue. Une version simulée n'apprendrait rien et donnerait de
+   * faux chiffres de facturation, ce qui est pire que pas de chiffres du tout.
+   * Ces deux écrans exigent donc une vraie API.
+   */
+  billing: billingEndpoints(apiClient),
+  settings: settingsEndpoints(apiClient),
 }
 
 /**

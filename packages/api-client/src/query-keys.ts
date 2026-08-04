@@ -39,4 +39,16 @@ export const planKeys = {
 export const analyticsKeys = {
   all: ['analytics'] as const,
   dashboard: (range: string) => [...analyticsKeys.all, 'dashboard', range] as const,
+  statistics: (range: string) => [...analyticsKeys.all, 'statistics', range] as const,
+}
+
+export const billingKeys = {
+  all: ['billing'] as const,
+  summary: () => [...billingKeys.all, 'summary'] as const,
+}
+
+export const settingsKeys = {
+  all: ['settings'] as const,
+  profile: () => [...settingsKeys.all, 'profile'] as const,
+  team: () => [...settingsKeys.all, 'team'] as const,
 }

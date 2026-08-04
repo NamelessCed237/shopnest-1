@@ -88,8 +88,13 @@ Quatre détails qui font perdre des heures si on les rate :
   requêtes préparées nommées de Prisma. Sans ce paramètre : erreurs
   `prepared statement "s0" already exists`, intermittentes donc difficiles à
   reproduire.
-- **`connection_limit=1`** — le plan gratuit plafonne les connexions ; sans
-  limite, Prisma ouvre un pool et sature le projet.
+- **`connection_limit=10`** — et surtout **pas 1**, malgré ce que suggèrent la
+  plupart des guides Supabase (écrits pour des fonctions serverless). Ici
+  l'extension d'isolation enveloppe **chaque requête dans une transaction** :
+  avec une seule connexion, deux requêtes concurrentes — le `Promise.all` du
+  tableau de bord, par exemple — s'attendent mutuellement et échouent en
+  `P2024 Timed out fetching a new connection`. Le message accuse le pool ; la
+  cause est le blocage mutuel.
 - **`DIRECT_URL` obligatoire** — `prisma migrate` pose un verrou consultatif
   que le pooler ne relaie pas. Sans elle, la migration **se bloque sans
   message d'erreur**.
@@ -198,19 +203,37 @@ un drapeau.
   toute manipulation risquée : *Database → Backups → Download*, ou
   `pg_dump` via `DIRECT_URL`.
 
-## 11. Ce qui reste à faire côté backend
+## 11. Modules backend
 
-Le dashboard consomme aujourd'hui bien plus d'endpoints que l'API n'en expose.
-Seuls `auth`, `tenants` et `products` existent côté NestJS. Il manque, par ordre
-d'utilité pour brancher les écrans existants :
+Tous les domaines consommés par le dashboard sont désormais servis par l'API :
 
-| Module | Écrans concernés |
+| Module | Routes |
 |---|---|
-| `categories` | CRUD catégories, filtre produits |
-| `orders` | Liste, détail, transitions, remboursements |
-| `customers` | Liste, fiche, historique |
-| `analytics` | Tuiles et graphique du tableau de bord |
+| `auth` | connexion, rafraîchissement, déconnexion |
+| `products` | liste, détail, création, modification, archivage, variantes |
+| `categories` | liste arborescente, détail, CRUD |
+| `orders` | liste, détail, transitions, remboursements |
+| `customers` | liste, fiche, historique, répartition par segment |
+| `analytics` | tuiles, série quotidienne, alertes de stock, ventilations |
+| `billing` | plan, quotas consommés, relevé mensuel des commissions |
+| `settings` | profil de la boutique, domaine personnalisé, équipe |
 
-Tant qu'ils n'existent pas, `apps/web-dashboard/src/lib/api.ts` continue de
-pointer ces domaines sur l'implémentation factice, produits et authentification
-mis à part.
+`VITE_LIVE_DOMAINS` les liste tous. L'implémentation factice reste en place :
+elle sert de mode démonstration hors ligne et de fixture aux tests.
+
+### Ce que le mode factice ne pouvait pas révéler
+
+Trois défauts n'apparaissent qu'avec une vraie base, et méritent d'être connus
+avant d'ajouter un module :
+
+- **Les requêtes brutes échappent à l'isolation.** `$queryRaw` court-circuite
+  l'extension Prisma, donc personne ne positionne `app.tenant_id` : la RLS
+  refuse alors toutes les lignes et la requête renvoie un résultat vide, sans
+  la moindre erreur. Passer par `PrismaService.queryRawScoped()`.
+- **Les transactions ne s'imbriquent pas.** L'extension enveloppe déjà chaque
+  requête dans une transaction. Pour plusieurs écritures liées, utiliser
+  `PrismaService.runInTenantTransaction()`.
+- **Un contrat sans champ n'est pas un contrat sans besoin.** La liste des
+  commandes affichait le nom de l'acheteur en le résolvant dans les fixtures ;
+  l'API ne renvoyait que `customerId`. D'où `customerName`, joint côté serveur —
+  sinon chaque ligne aurait déclenché une requête.

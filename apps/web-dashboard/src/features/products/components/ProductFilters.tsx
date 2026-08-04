@@ -68,7 +68,7 @@ export function ProductFilters({ filters, onChange, onReset }: ProductFiltersPro
             label: t(`products.status.${status}`),
           }))}
           value={filters.status}
-          onChange={(value) => onChange({ status: value as ProductStatus | undefined })}
+          onChange={(status) => onChange({ status })}
         />
       </div>
 
@@ -81,7 +81,7 @@ export function ProductFilters({ filters, onChange, onReset }: ProductFiltersPro
           source={{ entity: 'categories' }}
           entityResolver={entityResolver}
           value={filters.categoryId}
-          onChange={(value) => onChange({ categoryId: value as string | undefined })}
+          onChange={(categoryId) => onChange({ categoryId })}
         />
       </div>
 

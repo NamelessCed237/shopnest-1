@@ -5,11 +5,25 @@ import type { ReactNode } from 'react'
  * mobile. Deux listes séparées finiraient par diverger.
  */
 export interface NavItem {
-  to: '/dashboard' | '/products' | '/categories' | '/orders' | '/customers'
+  to:
+    | '/dashboard'
+    | '/products'
+    | '/categories'
+    | '/orders'
+    | '/customers'
+    | '/statistics'
+    | '/billing'
+    | '/settings'
   labelKey: string
   icon: ReactNode
   /** Écrans prévus mais non implémentés : visibles, explicitement inactifs. */
   disabled?: boolean
+  /**
+   * Réservé à l'administrateur. La route reste accessible — c'est le serveur
+   * qui tranche — mais l'afficher à un employé lui promettrait un écran qu'il
+   * ne peut pas ouvrir.
+   */
+  adminOnly?: boolean
 }
 
 export interface NavSection {
@@ -80,15 +94,14 @@ export const NAV_SECTIONS: NavSection[] = [
       { to: '/categories', labelKey: 'nav.categories', icon: icons.categories },
       { to: '/orders', labelKey: 'nav.orders', icon: icons.orders },
       { to: '/customers', labelKey: 'nav.customers', icon: icons.customers },
-      // TODO(#5): écran statistiques (doc/04).
-      { to: '/dashboard', labelKey: 'nav.analytics', icon: icons.analytics, disabled: true },
+      { to: '/statistics', labelKey: 'nav.analytics', icon: icons.analytics },
     ],
   },
   {
     titleKey: 'nav.section.account',
     items: [
-      { to: '/dashboard', labelKey: 'nav.billing', icon: icons.billing, disabled: true },
-      { to: '/dashboard', labelKey: 'nav.settings', icon: icons.settings, disabled: true },
+      { to: '/billing', labelKey: 'nav.billing', icon: icons.billing, adminOnly: true },
+      { to: '/settings', labelKey: 'nav.settings', icon: icons.settings },
     ],
   },
 ]

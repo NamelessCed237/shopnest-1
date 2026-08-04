@@ -8,7 +8,7 @@ import { LanguageSwitcher, ThemeToggle, type LanguageOption } from '@shopnest/ui
  * des préférences personnelles, pas des données métier — et qu'ils doivent
  * apparaître au même endroit dans les trois applications.
  */
-const LANGUAGES: readonly LanguageOption[] = [
+const LANGUAGES: readonly LanguageOption<Locale>[] = [
   { value: 'fr', label: 'Français', shortLabel: 'FR' },
   { value: 'en', label: 'English', shortLabel: 'EN' },
 ]
@@ -21,7 +21,7 @@ export function PreferencesControls() {
       <LanguageSwitcher
         value={locale}
         options={LANGUAGES}
-        onChange={(value) => setLocale(value as 'fr' | 'en')}
+        onChange={setLocale}
         groupLabel={t('preferences.language')}
       />
 

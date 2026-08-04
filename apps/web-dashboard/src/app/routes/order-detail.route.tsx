@@ -1,4 +1,5 @@
 import { Link, useParams } from '@tanstack/react-router'
+import type { Order } from '@shopnest/contracts'
 import { useTranslation } from '@shopnest/i18n/react'
 import { Alert, Button, Card } from '@shopnest/ui-web'
 import {
@@ -10,7 +11,6 @@ import {
   OrderTotalsCard,
   useOrder,
 } from '@/features/orders'
-import { fakeCustomerName } from '@/lib/fake/orders.fixtures'
 
 export function OrderDetailPage() {
   const { t, date, money } = useTranslation()
@@ -97,7 +97,7 @@ export function OrderDetailPage() {
             </div>
 
             <div className="flex flex-col gap-md">
-              <CustomerCard customerId={query.data.customerId} />
+              <CustomerCard order={query.data} />
               <OrderTotalsCard order={query.data} />
               <OrderPaymentCard order={query.data} />
             </div>
@@ -108,8 +108,9 @@ export function OrderDetailPage() {
   )
 }
 
-function CustomerCard({ customerId }: { customerId: string | undefined }) {
+function CustomerCard({ order }: { order: Order }) {
   const { t } = useTranslation()
+  const customerId = order.customerId
 
   if (!customerId) {
     return (
@@ -122,7 +123,9 @@ function CustomerCard({ customerId }: { customerId: string | undefined }) {
   return (
     <Card title={t('orders.columns.customer')}>
       <div className="flex flex-col gap-xs text-sm">
-        <span className="font-medium text-text-primary">{fakeCustomerName(customerId)}</span>
+        <span className="font-medium text-text-primary">
+          {order.customerName ?? t('orders.guest')}
+        </span>
         {/* Passerelle vers la fiche : le vendeur voit l'historique complet
             de l'acheteur sans repasser par la liste. */}
         <Link

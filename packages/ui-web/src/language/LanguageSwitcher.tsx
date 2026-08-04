@@ -1,16 +1,21 @@
 import { cn } from '../lib/cn.js'
 
-export interface LanguageOption {
-  value: string
+export interface LanguageOption<T extends string = string> {
+  value: T
   /** Nom de la langue DANS cette langue — « Français », pas « French ». */
   label: string
   shortLabel: string
 }
 
-export interface LanguageSwitcherProps {
-  value: string
-  options: readonly LanguageOption[]
-  onChange: (value: string) => void
+/**
+ * Générique sur le code de langue : avec `T = 'fr' | 'en'`, `onChange` rend
+ * directement une locale valide. En `string`, l'appelant devait la re-caster —
+ * un cast qui aurait survécu à l'ajout d'une troisième langue sans rien signaler.
+ */
+export interface LanguageSwitcherProps<T extends string = string> {
+  value: T
+  options: readonly LanguageOption<T>[]
+  onChange: (value: T) => void
   groupLabel: string
 }
 
@@ -21,7 +26,12 @@ export interface LanguageSwitcherProps {
  * Chaque langue est écrite dans sa propre langue : un utilisateur perdu dans
  * une interface qu'il ne lit pas doit pouvoir reconnaître la sienne.
  */
-export function LanguageSwitcher({ value, options, onChange, groupLabel }: LanguageSwitcherProps) {
+export function LanguageSwitcher<T extends string = string>({
+  value,
+  options,
+  onChange,
+  groupLabel,
+}: LanguageSwitcherProps<T>) {
   return (
     <div
       role="group"

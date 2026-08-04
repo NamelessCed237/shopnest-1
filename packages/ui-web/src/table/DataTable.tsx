@@ -3,6 +3,7 @@ import type { AppError } from '@shopnest/contracts'
 import { useDataTable, type DataTableSort } from '@shopnest/core'
 import { ErrorState } from '../feedback/ErrorState.js'
 import { EmptyState } from '../feedback/EmptyState.js'
+import { Icon } from '../icon/Icon.js'
 import { cn } from '../lib/cn.js'
 
 /**
@@ -216,6 +217,14 @@ function Frame({ children }: { children: ReactNode }) {
 }
 
 function SortIndicator({ active, order }: { active: boolean; order?: 'asc' | 'desc' }) {
-  if (!active) return <span aria-hidden="true" className="opacity-30">↕</span>
-  return <span aria-hidden="true">{order === 'asc' ? '↑' : '↓'}</span>
+  // Colonne inactive : l'icône reste visible mais atténuée. La masquer ferait
+  // sauter l'en-tête au survol et cacherait qu'un tri est possible.
+  if (!active) {
+    return (
+      <span className="opacity-30">
+        <Icon name="sort" size="sm" />
+      </span>
+    )
+  }
+  return <Icon name={order === 'asc' ? 'sort-asc' : 'sort-desc'} size="sm" />
 }

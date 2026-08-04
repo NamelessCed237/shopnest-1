@@ -83,6 +83,9 @@ const CustomerDetailPage = lazyRoute(
   () => import('./routes/customer-detail.route'),
   'CustomerDetailPage',
 )
+const StatisticsPage = lazyRoute(() => import('./routes/statistics.route'), 'StatisticsPage')
+const BillingPage = lazyRoute(() => import('./routes/billing.route'), 'BillingPage')
+const SettingsPage = lazyRoute(() => import('./routes/settings.route'), 'SettingsPage')
 
 const overviewRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
@@ -142,6 +145,30 @@ const customerDetailRoute = createRoute({
   component: CustomerDetailPage,
 })
 
+/**
+ * La période est validée par `OverviewSearchSchema`, réutilisé tel quel : cet
+ * écran commande la même fenêtre que le tableau de bord, et un second schéma
+ * identique finirait par diverger d'une valeur près.
+ */
+const statisticsRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/statistics',
+  validateSearch: OverviewSearchSchema,
+  component: StatisticsPage,
+})
+
+const billingRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/billing',
+  component: BillingPage,
+})
+
+const settingsRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/settings',
+  component: SettingsPage,
+})
+
 const routeTree = rootRoute.addChildren([
   landingRoute,
   loginRoute,
@@ -155,6 +182,9 @@ const routeTree = rootRoute.addChildren([
     customersRoute,
     customerDetailRoute,
     orderDetailRoute,
+    statisticsRoute,
+    billingRoute,
+    settingsRoute,
   ]),
 ])
 

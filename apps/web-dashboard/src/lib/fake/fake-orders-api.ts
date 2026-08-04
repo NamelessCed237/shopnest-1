@@ -4,15 +4,17 @@ import type {
   DashboardRange,
   DashboardSummary,
   ListOrdersQuery,
+  LowStockProduct,
   Order,
   PaymentMethod,
   RefundOrderInput,
   RevenuePoint,
+  StatisticsSummary,
   UpdateOrderStatusInput,
 } from '@shopnest/contracts'
 import { REFUNDABLE_STATUSES, canTransition } from '@shopnest/contracts'
 import { normalizeForSearch } from '@shopnest/utils'
-import { fakeProducts, fakeTenant } from './fixtures'
+import { fakeCategories, fakeProducts, fakeTenant } from './fixtures'
 import { REVENUE_STATUSES, fakeCustomerName, fakeOrders } from './orders.fixtures'
 import { FAKE_TODAY } from './clock'
 
@@ -274,16 +276,122 @@ export const fakeAnalyticsEndpoints = {
     return fakeOrders.slice(0, limit)
   },
 
-  async lowStockProducts(limit = 5) {
+  async lowStockProducts(limit = 5): Promise<LowStockProduct[]> {
     await sleep(LATENCY_MS / 2)
     return fakeProducts
       .filter((p) => p.status !== 'archived' && p.stock <= p.lowStockThreshold)
       .sort((a, b) => a.stock - b.stock)
       .slice(0, limit)
+      // Projection explicite sur `LowStockProduct` : renvoyer le produit entier
+      // laisserait l'écran s'appuyer par accident sur des champs que l'API
+      // réelle n'envoie pas.
+      .map(({ id, name, stock, lowStockThreshold }) => ({ id, name, stock, lowStockThreshold }))
+  },
+
+  /**
+   * Ventilations de l'écran statistiques.
+   *
+   * Reproduites en mode démonstration parce que l'écran doit exister sans
+   * base : c'est là qu'on juge une mise en page, et une page vide ne se juge
+   * pas. Les agrégats sont recalculés depuis les MÊMES fixtures que le reste,
+   * donc les chiffres se recoupent d'un écran à l'autre.
+   */
+  async statistics(range: DashboardRange): Promise<StatisticsSummary> {
+    await sleep(LATENCY_MS)
+
+    const days = RANGE_DAYS[range]
+    const window = ordersWithin(0, days).filter((order) =>
+      REVENUE_STATUSES.includes(order.status),
+    )
+
+    const byProduct = new Map<string, { name: string; quantity: number; cents: number }>()
+    const byCategory = new Map<string, { name: string; quantity: number; cents: number }>()
+    const byMethod = new Map<string, { orders: number; cents: number }>()
+
+    for (const order of window) {
+      for (const item of order.items) {
+        const product = byProduct.get(item.productId) ?? {
+          name: item.productName,
+          quantity: 0,
+          cents: 0,
+        }
+        product.quantity += item.quantity
+        product.cents += item.lineTotal.amountCents
+        byProduct.set(item.productId, product)
+
+        // Un produit rattaché à plusieurs catégories compte dans chacune —
+        // même convention que le backend (voir AnalyticsRepository.byCategory).
+        const source = fakeProducts.find((candidate) => candidate.id === item.productId)
+        for (const categoryId of source?.categoryIds ?? []) {
+          const category = byCategory.get(categoryId) ?? {
+            name: fakeCategoryName(categoryId),
+            quantity: 0,
+            cents: 0,
+          }
+          category.quantity += item.quantity
+          category.cents += item.lineTotal.amountCents
+          byCategory.set(categoryId, category)
+        }
+      }
+
+      if (order.payment) {
+        const method = byMethod.get(order.payment.method) ?? { orders: 0, cents: 0 }
+        method.orders += 1
+        method.cents += order.total.amountCents
+        byMethod.set(order.payment.method, method)
+      }
+    }
+
+    const start = daysAgoBoundary(days)
+    const firstOrderAt = new Map<string, number>()
+    for (const order of fakeOrders) {
+      if (!order.customerId || !REVENUE_STATUSES.includes(order.status)) continue
+      const time = new Date(order.createdAt).getTime()
+      const known = firstOrderAt.get(order.customerId)
+      if (known === undefined || time < known) firstOrderAt.set(order.customerId, time)
+    }
+
+    const active = new Set(window.map((order) => order.customerId).filter(Boolean) as string[])
+    let newCustomers = 0
+    for (const customerId of active) {
+      if ((firstOrderAt.get(customerId) ?? 0) >= start) newCustomers += 1
+    }
+
+    const top = <T>(entries: [string, T][], weight: (value: T) => number) =>
+      entries.sort((a, b) => weight(b[1]) - weight(a[1])).slice(0, 10)
+
+    return {
+      range,
+      topProducts: top([...byProduct.entries()], (v) => v.cents).map(([productId, value]) => ({
+        productId,
+        name: value.name,
+        quantitySold: value.quantity,
+        revenue: { amountCents: value.cents, currency: CURRENCY },
+      })),
+      byCategory: top([...byCategory.entries()], (v) => v.cents).map(([categoryId, value]) => ({
+        categoryId,
+        name: value.name,
+        quantitySold: value.quantity,
+        revenue: { amountCents: value.cents, currency: CURRENCY },
+      })),
+      byPaymentMethod: [...byMethod.entries()]
+        .sort((a, b) => b[1].cents - a[1].cents)
+        .map(([method, value]) => ({
+          method,
+          orderCount: value.orders,
+          revenue: { amountCents: value.cents, currency: CURRENCY },
+        })),
+      newCustomers,
+      returningCustomers: active.size - newCustomers,
+    }
   },
 }
 
 // --- Helpers -----------------------------------------------------------------
+
+/** Le vrai backend joint `categories` ; ici on résout dans les fixtures. */
+const fakeCategoryName = (categoryId: string): string =>
+  fakeCategories.find((category) => category.id === categoryId)?.name ?? categoryId
 
 function daysAgoBoundary(days: number): number {
   const date = new Date(FAKE_TODAY)

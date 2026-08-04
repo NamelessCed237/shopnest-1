@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common'
-import { PrismaClient } from '@prisma/client'
+import { Prisma, PrismaClient } from '@prisma/client'
 import { TenantContext } from '../tenancy/tenant-context'
 
 /**
@@ -97,6 +97,55 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
           },
         },
       },
+    })
+  }
+
+  /**
+   * Requête SQL BRUTE, contexte RLS posé.
+   *
+   * `$queryRaw` court-circuite l'extension d'isolation — c'est tout son
+   * intérêt, mais cela veut dire que personne ne positionne `app.tenant_id`.
+   * La politique RLS refuse alors TOUTES les lignes, et la requête renvoie un
+   * résultat vide parfaitement silencieux : pas d'erreur, pas de trace, juste
+   * un tableau de bord à zéro qu'on met une heure à expliquer.
+   *
+   * ⚠️ Le filtre `tenant_id` reste à écrire dans le SQL. Il fait double emploi
+   * avec la RLS, et c'est voulu : la requête doit être correcte même si la
+   * politique évolue.
+   */
+  async queryRawScoped<T>(query: Prisma.Sql): Promise<T> {
+    const tenantId = TenantContext.getTenantIdOrThrow()
+    const [, rows] = await this.$transaction([
+      this.$executeRawUnsafe(`SELECT set_config('app.tenant_id', '${assertUuid(tenantId)}', true)`),
+      this.$queryRaw(query),
+    ])
+    return rows as T
+  }
+
+  /**
+   * Exécute plusieurs écritures dans UNE SEULE transaction, contexte RLS posé.
+   *
+   * `withTenantIsolation()` ne convient pas ici : il enveloppe chaque opération
+   * dans sa propre transaction (c'est ainsi qu'il pose `app.tenant_id`), et
+   * Prisma refuse d'imbriquer. Deux écritures liées — passer une commande à
+   * `paid` et son paiement à `settled` — se retrouveraient dans deux
+   * transactions distinctes, avec un état intermédiaire visible et
+   * potentiellement définitif si la seconde échoue.
+   *
+   * ⚠️ À l'intérieur du callback, `tx` est le client BRUT : il n'injecte PAS de
+   * filtre `tenantId`. Le scope est assuré par la RLS seule — une écriture
+   * visant la ligne d'un autre vendeur n'affecte simplement aucune ligne.
+   * Ciblez donc toujours par identifiant, jamais par un critère large.
+   */
+  async runInTenantTransaction<T>(
+    fn: (tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>) => Promise<T>,
+  ): Promise<T> {
+    const tenantId = TenantContext.getTenantIdOrThrow()
+    return this.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(
+        `SELECT set_config('app.tenant_id', '${assertUuid(tenantId)}', true)`,
+      )
+      return fn(tx)
     })
   }
 

@@ -10,6 +10,12 @@ import { RolesGuard } from './common/guards/roles.guard'
 import { AuthModule } from './modules/auth/auth.module'
 import { TenantsModule } from './modules/tenants/tenants.module'
 import { ProductsModule } from './modules/products/products.module'
+import { CategoriesModule } from './modules/categories/categories.module'
+import { OrdersModule } from './modules/orders/orders.module'
+import { CustomersModule } from './modules/customers/customers.module'
+import { AnalyticsModule } from './modules/analytics/analytics.module'
+import { BillingModule } from './modules/billing/billing.module'
+import { SettingsModule } from './modules/settings/settings.module'
 import { TenantResolverMiddleware } from './tenancy/tenant-resolver.middleware'
 
 @Module({
@@ -29,6 +35,12 @@ import { TenantResolverMiddleware } from './tenancy/tenant-resolver.middleware'
     AuthModule,
     TenantsModule,
     ProductsModule,
+    CategoriesModule,
+    OrdersModule,
+    CustomersModule,
+    AnalyticsModule,
+    BillingModule,
+    SettingsModule,
   ],
   providers: [
     // L'ordre compte : débit → authentification → autorisation.

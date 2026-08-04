@@ -19,12 +19,8 @@ import { EmptyState } from '../feedback/EmptyState.js'
  * @shopnest/core est corrigé sur les deux plateformes en même temps.
  */
 
-export interface DropdownProps<T = string> {
+interface DropdownCommonProps<T> {
   source: OptionSource<T>
-  value?: T | T[]
-  defaultValue?: T | T[]
-  onChange?: (value: T | T[]) => void
-  multiple?: boolean
   clearable?: boolean
   searchable?: boolean
   creatable?: boolean
@@ -47,9 +43,28 @@ export interface DropdownProps<T = string> {
   renderEmpty?: () => ReactNode
 }
 
+/**
+ * MÊME union discriminée que le jumeau web : `multiple` retype `value` et
+ * `onChange`. Les deux plateformes exposent la même API — c'est la promesse de
+ * doc/07, et elle vaut aussi pour les types.
+ */
+export type DropdownProps<T = string> =
+  | (DropdownCommonProps<T> & {
+      multiple?: false
+      value?: T
+      defaultValue?: T
+      onChange?: (value: T | undefined, option: Option<T> | undefined) => void
+    })
+  | (DropdownCommonProps<T> & {
+      multiple: true
+      value?: T[]
+      defaultValue?: T[]
+      onChange?: (value: T[], options: Option<T>[]) => void
+    })
+
 export function Dropdown<T = string>(props: DropdownProps<T>) {
   const { label, placeholder = 'Sélectionner…', error, helperText, renderOption, renderEmpty } = props
-  const { state, actions, a11y } = useSelect<T>(props)
+  const { state, actions, a11y } = useSelect<T>(props as UseSelectParams<T>)
 
   return (
     <View style={{ gap: spacing.xs }}>

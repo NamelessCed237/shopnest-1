@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common'
-import type { CreateProductInput, ListProductsQuery } from '@shopnest/contracts'
+import type { Prisma } from '@prisma/client'
+import type {
+  CreateProductInput,
+  CreateVariantInput,
+  ListProductsQuery,
+  UpdateVariantInput,
+} from '@shopnest/contracts'
 import { PrismaService, tenantScoped } from '../../database/prisma.service'
 import { toProduct } from './products.mapper'
 
@@ -66,6 +72,53 @@ export class ProductsRepository {
       }),
     })
     return toProduct(row)
+  }
+
+  async update(id: string, data: Prisma.ProductUpdateInput) {
+    const row = await this.db.product.update({
+      where: { id },
+      data,
+      include: { variants: true, categories: { select: { id: true } } },
+    })
+    return toProduct(row)
+  }
+
+  findVariantBySku(sku: string) {
+    return this.db.productVariant.findFirst({ where: { sku } })
+  }
+
+  createVariant(productId: string, input: CreateVariantInput) {
+    return this.db.productVariant.create({
+      data: tenantScoped({
+        productId,
+        sku: input.sku,
+        name: input.name,
+        priceCents: input.price.amountCents,
+        stock: input.stock,
+        attributes: input.attributes,
+      }),
+    })
+  }
+
+  findVariant(productId: string, variantId: string) {
+    return this.db.productVariant.findFirst({ where: { id: variantId, productId } })
+  }
+
+  updateVariant(variantId: string, input: UpdateVariantInput) {
+    return this.db.productVariant.update({
+      where: { id: variantId },
+      data: {
+        ...(input.sku !== undefined ? { sku: input.sku } : {}),
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.price !== undefined ? { priceCents: input.price.amountCents } : {}),
+        ...(input.stock !== undefined ? { stock: input.stock } : {}),
+        ...(input.attributes !== undefined ? { attributes: input.attributes } : {}),
+      },
+    })
+  }
+
+  async removeVariant(variantId: string) {
+    await this.db.productVariant.deleteMany({ where: { id: variantId } })
   }
 
   /** Soft delete : on ne casse jamais l'historique d'une commande (doc/03 §4). */

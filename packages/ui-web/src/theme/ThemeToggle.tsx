@@ -1,10 +1,11 @@
 import { THEME_PREFERENCES, useTheme, type ThemePreference } from './ThemeProvider.js'
 import { cn } from '../lib/cn.js'
+import { Icon, type IconName } from '../icon/Icon.js'
 
-const ICON: Record<ThemePreference, string> = {
-  system: '🖥',
-  light: '☀',
-  dark: '☾',
+const ICON: Record<ThemePreference, IconName> = {
+  system: 'monitor',
+  light: 'sun',
+  dark: 'moon',
 }
 
 export interface ThemeToggleProps {
@@ -44,7 +45,7 @@ export function ThemeToggle({ labels, groupLabel }: ThemeToggleProps) {
                 : 'text-text-secondary hover:text-text-primary',
             )}
           >
-            <span aria-hidden="true">{ICON[option]}</span>
+            <Icon name={ICON[option]} />
             <span className="sr-only">{labels[option]}</span>
           </button>
         )

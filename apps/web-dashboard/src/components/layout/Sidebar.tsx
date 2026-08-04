@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from '@shopnest/i18n/react'
 import { cn } from '@shopnest/ui-web'
+import { useSessionStore } from '@/features/auth'
 import { NAV_SECTIONS, type NavItem } from './nav-items'
 
 export interface SidebarProps {
@@ -12,6 +13,9 @@ export interface SidebarProps {
 
 export function Sidebar({ collapsed, onToggleCollapse, onNavigate }: SidebarProps) {
   const { t } = useTranslation()
+  // Filtrage d'AFFICHAGE seulement : l'autorisation reste côté serveur, qui
+  // refuse `/api/billing` à un employé quoi qu'affiche ce menu.
+  const isAdmin = useSessionStore((state) => state.user?.role === 'tenant_admin')
 
   return (
     <div className="flex h-full flex-col bg-surface-base">
@@ -44,11 +48,13 @@ export function Sidebar({ collapsed, onToggleCollapse, onNavigate }: SidebarProp
             )}
 
             <ul className="flex flex-col gap-xs">
-              {section.items.map((item) => (
-                <li key={item.labelKey}>
-                  <SidebarLink item={item} collapsed={collapsed} onNavigate={onNavigate} />
-                </li>
-              ))}
+              {section.items
+                .filter((item) => !item.adminOnly || isAdmin)
+                .map((item) => (
+                  <li key={item.labelKey}>
+                    <SidebarLink item={item} collapsed={collapsed} onNavigate={onNavigate} />
+                  </li>
+                ))}
             </ul>
           </div>
         ))}

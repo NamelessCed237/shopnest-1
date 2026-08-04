@@ -229,7 +229,7 @@ export function ProductForm({
                 }))}
                 value={values.status}
                 onChange={(value) =>
-                  setValue('status', value as ProductStatus, { shouldDirty: true })
+                  value && setValue('status', value, { shouldDirty: true })
                 }
               />
 
@@ -243,7 +243,7 @@ export function ProductForm({
                 entityResolver={entityResolver}
                 value={values.categoryIds}
                 onChange={(value) =>
-                  setValue('categoryIds', value as string[], { shouldDirty: true })
+                  setValue('categoryIds', value, { shouldDirty: true })
                 }
               />
             </div>

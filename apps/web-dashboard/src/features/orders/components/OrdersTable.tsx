@@ -3,7 +3,6 @@ import type { Order } from '@shopnest/contracts'
 import { useTranslation } from '@shopnest/i18n/react'
 import { Button, DataTable, EmptyState, type DataTableColumn } from '@shopnest/ui-web'
 import { countLabelKey } from '@/lib/count-label'
-import { fakeCustomerName } from '@/lib/fake/orders.fixtures'
 import { useOrders, type OrderFilters } from '../api/use-orders'
 import { OrderStatusBadge } from './OrderStatusBadge'
 import { PaymentMethodLabel } from './PaymentMethodLabel'
@@ -45,7 +44,9 @@ export function OrdersTable({
       {
         key: 'customer' as SortKey,
         header: t('orders.columns.customer'),
-        render: (order) => fakeCustomerName(order.customerId),
+        // Le nom vient de la commande : le résoudre côté client imposerait une
+        // requête par ligne (doc/02 §2.3).
+        render: (order) => order.customerName ?? t('orders.guest'),
       },
       {
         key: 'createdAt',

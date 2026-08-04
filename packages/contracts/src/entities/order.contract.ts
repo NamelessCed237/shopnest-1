@@ -61,6 +61,17 @@ export const OrderSchema = z.object({
   id: z.string().uuid(),
   reference: z.string(),
   customerId: z.string().uuid().optional(),
+  /**
+   * Nom d'affichage de l'acheteur, joint par le serveur.
+   *
+   * Redondant avec `customerId`, et assumé : la liste des commandes affiche un
+   * nom sur chaque ligne. Sans ce champ, le client devrait charger chaque fiche
+   * pour l'obtenir — un N+1 par page — ou n'afficher qu'un identifiant, ce qui
+   * rend l'écran inutilisable.
+   *
+   * Absent pour une commande passée en invité.
+   */
+  customerName: z.string().optional(),
   status: z.enum(ORDER_STATUS),
   items: z.array(OrderItemSchema),
   subtotal: MoneySchema,
@@ -131,6 +142,26 @@ export const REFUNDABLE_STATUSES: readonly OrderStatus[] = [
   'delivered',
 ]
 
+/**
+ * Statuts qui comptent dans le CHIFFRE D'AFFAIRES.
+ *
+ * Même liste que `REFUNDABLE_STATUSES` aujourd'hui, et pourtant délibérément
+ * distincte : « l'argent est encaissé, on peut le rendre » et « la vente compte
+ * dans le CA » sont deux questions différentes, qui divergeront le jour où un
+ * statut « en litige » apparaîtra. Les fusionner ferait bouger l'un en corrigeant
+ * l'autre.
+ *
+ * Vit dans le contrat parce que le tableau de bord, la fiche client et l'API
+ * doivent annoncer le même chiffre — un écart ici se lit comme une erreur
+ * comptable.
+ */
+export const REVENUE_STATUSES: readonly OrderStatus[] = [
+  'paid',
+  'preparing',
+  'shipped',
+  'delivered',
+]
+
 export const UpdateOrderStatusSchema = z.object({
   status: z.enum(ORDER_STATUS),
   /** doc/03 §6 — rejouer la requête ne doit pas produire deux transitions. */
@@ -148,6 +179,13 @@ export type RefundOrderInput = z.infer<typeof RefundOrderSchema>
 
 export const ListOrdersQuerySchema = CursorQuerySchema.extend({
   status: z.enum(ORDER_STATUS).optional(),
+  /**
+   * Le tableau des commandes propose ce filtre. Il vit donc dans le contrat et
+   * non dans les seules fixtures : un filtre que l'interface affiche mais que
+   * le serveur ignore ne renvoie pas d'erreur — il renvoie simplement tout,
+   * et le vendeur croit avoir filtré.
+   */
+  paymentMethod: z.enum(PAYMENT_METHODS).optional(),
   customerId: z.string().uuid().optional(),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),

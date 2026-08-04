@@ -58,7 +58,7 @@ export function CustomerFilters({ filters, onChange, onReset }: CustomerFiltersP
             description: t(`customers.segment.${segment}.hint`),
           }))}
           value={filters.segment}
-          onChange={(value) => onChange({ segment: value as CustomerSegment | undefined })}
+          onChange={(segment) => onChange({ segment })}
         />
       </div>
 

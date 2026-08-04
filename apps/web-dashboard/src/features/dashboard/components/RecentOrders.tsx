@@ -2,7 +2,6 @@ import { Link } from '@tanstack/react-router'
 import { useTranslation } from '@shopnest/i18n/react'
 import { Card, EmptyState, ErrorState, OptionSkeleton } from '@shopnest/ui-web'
 import { OrderStatusBadge } from '@/features/orders'
-import { fakeCustomerName } from '@/lib/fake/orders.fixtures'
 import { useRecentOrders } from '../api/use-dashboard'
 
 export function RecentOrders() {
@@ -34,7 +33,7 @@ export function RecentOrders() {
                 <p className="truncate text-sm font-medium text-text-primary">
                   {order.reference}
                   <span className="ml-sm font-normal text-text-secondary">
-                    {fakeCustomerName(order.customerId)}
+                    {order.customerName ?? t('orders.guest')}
                   </span>
                 </p>
                 <p className="text-xs text-text-secondary">{date(order.createdAt)}</p>

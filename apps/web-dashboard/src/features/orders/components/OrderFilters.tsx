@@ -62,7 +62,7 @@ export function OrderFilters({ filters, onChange, onReset }: OrderFiltersProps) 
             label: t(`orders.status.${status}`),
           }))}
           value={filters.status}
-          onChange={(value) => onChange({ status: value as OrderStatus | undefined })}
+          onChange={(status) => onChange({ status })}
         />
       </div>
 
@@ -76,7 +76,7 @@ export function OrderFilters({ filters, onChange, onReset }: OrderFiltersProps) 
             label: t(`orders.paymentMethod.${method}`),
           }))}
           value={filters.paymentMethod}
-          onChange={(value) => onChange({ paymentMethod: value as PaymentMethod | undefined })}
+          onChange={(paymentMethod) => onChange({ paymentMethod })}
         />
       </div>
 

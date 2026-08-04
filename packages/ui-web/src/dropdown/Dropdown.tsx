@@ -7,6 +7,7 @@ import {
   type UseSelectParams,
 } from '@shopnest/core'
 import { Field } from '../field/Field.js'
+import { Icon } from '../icon/Icon.js'
 import { OptionSkeleton } from '../feedback/OptionSkeleton.js'
 import { ErrorState } from '../feedback/ErrorState.js'
 import { EmptyState } from '../feedback/EmptyState.js'
@@ -20,16 +21,11 @@ import { cn } from '../lib/cn.js'
  * C'est pour cela qu'il est court.
  */
 
-export interface DropdownProps<T = string> {
+/** Tout ce qui ne dépend pas du mode de sélection. */
+interface DropdownCommonProps<T> {
   /** R1 — une SOURCE, pas des données. Statique | fonction | query | entity. */
   source: OptionSource<T>
 
-  // R4 — contrôlé ou non contrôlé
-  value?: T | T[]
-  defaultValue?: T | T[]
-  onChange?: (value: T | T[]) => void
-
-  multiple?: boolean
   clearable?: boolean
   searchable?: boolean
   creatable?: boolean
@@ -57,7 +53,68 @@ export interface DropdownProps<T = string> {
   ) => ReactNode
   renderTrigger?: (state: { selected: Option<T>[]; isOpen: boolean }) => ReactNode
   renderEmpty?: () => ReactNode
+
+  /** Libellés — `ui-web` ne dépend pas de `@shopnest/i18n` (doc/06 §1). */
+  labels?: Partial<DropdownLabels>
 }
+
+export interface DropdownLabels {
+  selectedCount: (count: number) => string
+  selectAll: string
+  clearAll: string
+  remove: (label: string) => string
+  create: (search: string) => string
+}
+
+const DEFAULT_LABELS: DropdownLabels = {
+  selectedCount: (count) => `${count} sélectionnés`,
+  selectAll: 'Tout sélectionner',
+  clearAll: 'Tout effacer',
+  remove: (label) => `Retirer ${label}`,
+  create: (search) => `Créer « ${search} »`,
+}
+
+/**
+ * R4 — contrôlé ou non contrôlé, et TYPÉ SELON LE MODE.
+ *
+ * `multiple` discrimine l'union : ajouter ce seul mot retype `value` et
+ * `onChange`, et le compilateur pointe ce qui reste à ajuster. Avant, la
+ * signature commune `T | T[]` imposait un cast à chaque appelant, et passer un
+ * champ en multiple se faisait à la main de proche en proche.
+ */
+export type DropdownProps<T = string> =
+  | (DropdownCommonProps<T> & {
+      multiple?: false
+      value?: T
+      defaultValue?: T
+      onChange?: (value: T | undefined, option: Option<T> | undefined) => void
+    })
+  | (DropdownCommonProps<T> & {
+      multiple: true
+      value?: T[]
+      defaultValue?: T[]
+      onChange?: (value: T[], options: Option<T>[]) => void
+    })
+
+/**
+ * `Omit` qui SURVIT à une union.
+ *
+ * `Omit<A | B, 'x'>` ne retire pas `x` de A et de B : il fusionne d'abord les
+ * deux en un objet unique, puis retire. Le résultat perd la discrimination, et
+ * un wrapper métier écrit avec `Omit<DropdownProps, 'source'>` n'accepterait
+ * plus ni la variante simple ni la variante multiple.
+ *
+ * `T extends unknown` force la distribution sur chaque membre.
+ */
+export type DistributiveOmit<T, K extends keyof never> = T extends unknown
+  ? Omit<T, K>
+  : never
+
+/** À utiliser pour tout wrapper métier autour de `Dropdown` (doc/07 §3.7). */
+export type DropdownWrapperProps<T = string, K extends keyof never = never> = DistributiveOmit<
+  DropdownProps<T>,
+  K
+>
 
 export function Dropdown<T = string>(props: DropdownProps<T>) {
   const {
@@ -73,8 +130,9 @@ export function Dropdown<T = string>(props: DropdownProps<T>) {
     renderEmpty,
   } = props
 
+  const labels = { ...DEFAULT_LABELS, ...props.labels }
   const listRef = useRef<HTMLUListElement>(null)
-  const { state, actions, a11y, keyboard } = useSelect<T>(props)
+  const { state, actions, a11y, keyboard } = useSelect<T>(props as UseSelectParams<T>)
 
   const onKeyDown = (event: KeyboardEvent) => {
     if (keyboard.handleKeyDown(event.key)) event.preventDefault()
@@ -94,9 +152,19 @@ export function Dropdown<T = string>(props: DropdownProps<T>) {
             })}
           >
             {renderTrigger?.({ selected: state.selected, isOpen: state.isOpen }) ?? (
-              <TriggerContent selected={state.selected} placeholder={placeholder} />
+              <TriggerContent
+                selected={state.selected}
+                placeholder={placeholder}
+                multiple={state.multiple}
+                labels={labels}
+                onRemove={actions.remove}
+              />
             )}
-            <ChevronIcon open={state.isOpen} />
+            <span
+              className={cn('shrink-0 transition-transform', { 'rotate-180': state.isOpen })}
+            >
+              <Icon name="chevron-down" />
+            </span>
           </button>
         </Popover.Trigger>
 
@@ -110,6 +178,23 @@ export function Dropdown<T = string>(props: DropdownProps<T>) {
               onChange={actions.setSearch}
               loading={state.status === 'loading'}
             />
+          )}
+
+          {/*
+            Bascule « tout » — seulement en multiple, et seulement si TOUTE la
+            liste est chargée. Sur une source paginée, elle ne porterait que sur
+            la page courante : l'utilisateur croirait avoir tout coché alors
+            qu'il en manque, ce qui est pire que de ne rien proposer.
+          */}
+          {state.multiple && state.status === 'success' && !state.hasNextPage && (
+            <button
+              type="button"
+              onClick={actions.toggleAll}
+              className="flex w-full items-center gap-sm border-b border-border-base px-sm py-xs text-left text-sm text-text-secondary hover:text-text-primary"
+            >
+              <CheckBox checked={state.allSelected} />
+              {state.allSelected ? labels.clearAll : labels.selectAll}
+            </button>
           )}
 
           {/* R5 — les quatre états sont rendus par le composant, pas par l'appelant */}
@@ -146,7 +231,13 @@ export function Dropdown<T = string>(props: DropdownProps<T>) {
                   {renderOption?.(option, {
                     selected: state.isSelected(option),
                     highlighted: state.highlightedIndex === index,
-                  }) ?? <DefaultOption option={option} selected={state.isSelected(option)} />}
+                  }) ?? (
+                    <DefaultOption
+                      option={option}
+                      selected={state.isSelected(option)}
+                      multiple={state.multiple}
+                    />
+                  )}
                 </li>
               ))}
             </ul>
@@ -160,7 +251,7 @@ export function Dropdown<T = string>(props: DropdownProps<T>) {
               onClick={() => void actions.create()}
               className="w-full border-t border-border-base px-sm py-xs text-left text-sm text-brand-primary"
             >
-              Créer « {state.search} »
+              {labels.create(state.search)}
             </button>
           )}
         </Popover.Content>
@@ -171,31 +262,123 @@ export function Dropdown<T = string>(props: DropdownProps<T>) {
 
 // --- Sous-composants privés --------------------------------------------------
 
+/**
+ * Contenu du déclencheur.
+ *
+ * En sélection multiple, des PASTILLES retirables plutôt qu'un « 3
+ * sélectionnés » : ce compteur oblige à rouvrir la liste rien que pour savoir
+ * ce qui est coché, et à la parcourir pour en retirer un seul.
+ *
+ * Au-delà de trois, on bascule sur un compteur — sinon le déclencheur s'étire
+ * et bouscule la mise en page de la barre de filtres.
+ */
 function TriggerContent<T>({
   selected,
   placeholder,
+  multiple,
+  labels,
+  onRemove,
 }: {
   selected: Option<T>[]
   placeholder: string
+  multiple: boolean
+  labels: DropdownLabels
+  onRemove: (value: T) => void
 }) {
   if (selected.length === 0) {
-    return <span className="text-text-disabled">{placeholder}</span>
+    return <span className="truncate text-text-disabled">{placeholder}</span>
   }
-  if (selected.length === 1) return <span className="truncate">{selected[0]?.label}</span>
-  return <span className="truncate">{selected.length} sélectionnés</span>
+
+  if (!multiple || selected.length === 1) {
+    return <span className="truncate">{selected[0]?.label}</span>
+  }
+
+  if (selected.length > 3) {
+    return <span className="truncate">{labels.selectedCount(selected.length)}</span>
+  }
+
+  return (
+    <span className="flex min-w-0 flex-wrap items-center gap-xs">
+      {selected.map((option) => (
+        <span
+          key={String(option.value)}
+          className="flex max-w-40 items-center gap-xs rounded-sm bg-brand-primarySubtle px-xs py-[1px] text-xs text-brand-primary"
+        >
+          <span className="truncate">{option.label}</span>
+          {/*
+            `<span role="button">` et non `<button>` : ce contenu vit DANS le
+            bouton déclencheur, et un bouton imbriqué dans un bouton est du HTML
+            invalide que les navigateurs corrigent en le sortant du DOM.
+          */}
+          <span
+            role="button"
+            tabIndex={-1}
+            aria-label={labels.remove(option.label)}
+            onClick={(event) => {
+              // Sans cela, le clic remonte au déclencheur et rouvre la liste
+              // au moment même où l'on vient d'en retirer un élément.
+              event.stopPropagation()
+              onRemove(option.value)
+            }}
+            className="opacity-70 hover:opacity-100"
+          >
+            <Icon name="close" size="sm" />
+          </span>
+        </span>
+      ))}
+    </span>
+  )
 }
 
-function DefaultOption<T>({ option, selected }: { option: Option<T>; selected: boolean }) {
+function DefaultOption<T>({
+  option,
+  selected,
+  multiple,
+}: {
+  option: Option<T>
+  selected: boolean
+  multiple: boolean
+}) {
   return (
-    <div className="flex items-center justify-between gap-sm">
-      <div className="min-w-0">
+    <div className="flex items-center gap-sm">
+      {/*
+        Case à cocher en multiple, coche à droite en simple.
+        La case dit « on peut en prendre plusieurs » AVANT le premier clic ;
+        une coche seule ne se distingue pas d'un choix unique déjà fait, et
+        l'utilisateur referme le menu croyant avoir terminé.
+      */}
+      {multiple && <CheckBox checked={selected} />}
+
+      <div className="min-w-0 flex-1">
         <div className="truncate text-sm text-text-primary">{option.label}</div>
         {option.description && (
           <div className="truncate text-xs text-text-secondary">{option.description}</div>
         )}
       </div>
-      {selected && <CheckIcon />}
+
+      {!multiple && selected && (
+        <span className="text-brand-primary">
+          <Icon name="check" />
+        </span>
+      )}
     </div>
+  )
+}
+
+/** Case DÉCORATIVE : l'état sélectionné est déjà porté par `aria-selected`. */
+function CheckBox({ checked }: { checked: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'grid h-4 w-4 shrink-0 place-items-center rounded-sm border transition-colors',
+        checked
+          ? 'border-brand-primary bg-brand-primary text-brand-onPrimary'
+          : 'border-border-strong',
+      )}
+    >
+      {checked && <Icon name="check" size="sm" />}
+    </span>
   )
 }
 
@@ -222,22 +405,6 @@ function SearchInput({
     </div>
   )
 }
-
-const ChevronIcon = ({ open }: { open: boolean }) => (
-  <svg
-    aria-hidden="true"
-    viewBox="0 0 20 20"
-    className={cn('h-4 w-4 shrink-0 transition-transform', { 'rotate-180': open })}
-  >
-    <path d="M6 8l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" />
-  </svg>
-)
-
-const CheckIcon = () => (
-  <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4 text-brand-primary">
-    <path d="M5 10l3 3 7-7" fill="none" stroke="currentColor" strokeWidth="2" />
-  </svg>
-)
 
 const TRIGGER_BASE =
   'flex w-full items-center justify-between gap-sm rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50'

@@ -133,7 +133,7 @@ export function CategoryFormDialog({
             label: option.name,
           }))}
           value={parentId}
-          onChange={(value) => setParentId(value as string | undefined)}
+          onChange={(value) => setParentId(value)}
           error={fieldError('parentId')}
           helperText={t('categories.form.parentHint')}
         />

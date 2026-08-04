@@ -11,12 +11,8 @@ import { useAsyncOptions, type AsyncOptionsStatus } from './use-async-options.js
  * de sélection ou d'accessibilité ici le corrige sur les deux plateformes.
  */
 
-export interface UseSelectParams<T = string> {
+interface SelectCommonParams<T> {
   source: OptionSource<T>
-  value?: T | T[]
-  defaultValue?: T | T[]
-  onChange?: (value: T | T[], option: Option<T> | Option<T>[]) => void
-  multiple?: boolean
   clearable?: boolean
   disabled?: boolean
   searchable?: boolean
@@ -25,6 +21,41 @@ export interface UseSelectParams<T = string> {
   deps?: Record<string, unknown>
   entityResolver?: UseAsyncOptionsEntityResolver<T>
 }
+
+/**
+ * Sélection SIMPLE — `value` est une valeur, `onChange` en reçoit une.
+ *
+ * `undefined` est un état légitime et non un accident : c'est ce que reçoit
+ * l'appelant quand le champ est vidé via `clearable`.
+ */
+export interface SingleSelectParams<T> extends SelectCommonParams<T> {
+  multiple?: false
+  value?: T
+  defaultValue?: T
+  onChange?: (value: T | undefined, option: Option<T> | undefined) => void
+}
+
+/** Sélection MULTIPLE — `value` est un tableau, `onChange` en reçoit un. */
+export interface MultiSelectParams<T> extends SelectCommonParams<T> {
+  multiple: true
+  value?: T[]
+  defaultValue?: T[]
+  onChange?: (value: T[], options: Option<T>[]) => void
+}
+
+/**
+ * Union DISCRIMINÉE par `multiple`, et c'est tout l'intérêt.
+ *
+ * L'ancienne signature — `value?: T | T[]`, `onChange?: (v: T | T[]) => void` —
+ * obligeait CHAQUE appelant à écrire `value as ProductStatus | undefined` pour
+ * récupérer un type utilisable. Passer un champ en sélection multiple devenait
+ * alors une modification manuelle propagée de proche en proche, sans que le
+ * compilateur signale ce qui restait à corriger.
+ *
+ * Avec la discrimination, ajouter `multiple` suffit : TypeScript retype `value`
+ * et `onChange`, et signale précisément les endroits à adapter. Aucun cast.
+ */
+export type UseSelectParams<T = string> = SingleSelectParams<T> | MultiSelectParams<T>
 
 type UseAsyncOptionsEntityResolver<T> = NonNullable<
   Parameters<typeof useAsyncOptions<T>>[0]['entityResolver']
@@ -44,6 +75,9 @@ export interface SelectState<T> {
   isFetchingNextPage: boolean
   canCreate: boolean
   isSelected: (option: Option<T>) => boolean
+  multiple: boolean
+  /** Toutes les options chargées sont cochées — état de la bascule « tout ». */
+  allSelected: boolean
 }
 
 export function useSelect<T = string>(params: UseSelectParams<T>) {
@@ -94,8 +128,21 @@ export function useSelect<T = string>(params: UseSelectParams<T>) {
   const commit = useCallback(
     (values: T[], options: Option<T>[]) => {
       if (!isControlled) setInternalValue(values)
-      if (multiple) onChange?.(values, options)
-      else onChange?.(values[0] as T, options[0] as Option<T>)
+
+      /*
+       * L'UNIQUE endroit où la forme de `onChange` est aplatie.
+       *
+       * L'union discriminée garantit aux appelants un `onChange` correctement
+       * typé ; à l'intérieur, le hook travaille toujours sur des tableaux —
+       * c'est ce qui lui permet de traiter les deux modes avec un seul chemin
+       * de code. Le cast est confiné ici, sous la garde de `multiple` qui vient
+       * des mêmes props que `onChange`.
+       */
+      if (multiple) {
+        ;(onChange as MultiSelectParams<T>['onChange'])?.(values, options)
+      } else {
+        ;(onChange as SingleSelectParams<T>['onChange'])?.(values[0], options[0])
+      }
     },
     [isControlled, multiple, onChange],
   )
@@ -121,6 +168,39 @@ export function useSelect<T = string>(params: UseSelectParams<T>) {
   )
 
   const clear = useCallback(() => commit([], []), [commit])
+
+  /**
+   * Retire UNE valeur, sans ouvrir la liste.
+   *
+   * Nécessaire pour les pastilles du déclencheur : en sélection multiple, la
+   * seule façon de désélectionner était de rouvrir le menu et de retrouver la
+   * ligne — pénible dès qu'on a coché cinq éléments dans une liste de cent.
+   */
+  const remove = useCallback(
+    (value: T) => {
+      const values = selectedValues.filter((v) => String(v) !== String(value))
+      commit(
+        values,
+        values.map((v) => optionByValue.get(String(v)) ?? { value: v, label: String(v) }),
+      )
+    },
+    [selectedValues, commit, optionByValue],
+  )
+
+  /**
+   * Coche ou décoche toutes les options CHARGÉES.
+   *
+   * « Chargées » et non « existantes » : sur une source paginée, le hook ne
+   * connaît que la page courante. Prétendre tout sélectionner alors qu'il reste
+   * des pages serait un mensonge — et une requête de plus à chaque défilement.
+   * Le composant n'affiche donc la bascule que sur une source complète.
+   */
+  const toggleAll = useCallback(() => {
+    const selectable = async.options.filter((option) => !option.disabled)
+    const allSelected = selectable.length > 0 && selectable.every((o) => selectedSet.has(String(o.value)))
+    if (allSelected) commit([], [])
+    else commit(selectable.map((o) => o.value), selectable)
+  }, [async.options, selectedSet, commit])
 
   const create = useCallback(async () => {
     if (!creatable || !onCreate || !async.search.trim()) return
@@ -219,6 +299,10 @@ export function useSelect<T = string>(params: UseSelectParams<T>) {
     isFetchingNextPage: async.isFetchingNextPage,
     canCreate,
     isSelected,
+    multiple,
+    allSelected:
+      async.options.length > 0 &&
+      async.options.every((o) => o.disabled || selectedSet.has(String(o.value))),
   }
 
   const actions = {
@@ -226,6 +310,8 @@ export function useSelect<T = string>(params: UseSelectParams<T>) {
     close,
     toggle,
     select,
+    remove,
+    toggleAll,
     clear: clearable ? clear : undefined,
     create,
     setSearch: async.setSearch,

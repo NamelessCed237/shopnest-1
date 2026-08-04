@@ -16,6 +16,7 @@ import { CustomersModule } from './modules/customers/customers.module'
 import { AnalyticsModule } from './modules/analytics/analytics.module'
 import { BillingModule } from './modules/billing/billing.module'
 import { SettingsModule } from './modules/settings/settings.module'
+import { AdminModule } from './modules/admin/admin.module'
 import { TenantResolverMiddleware } from './tenancy/tenant-resolver.middleware'
 
 @Module({
@@ -41,6 +42,7 @@ import { TenantResolverMiddleware } from './tenancy/tenant-resolver.middleware'
     AnalyticsModule,
     BillingModule,
     SettingsModule,
+    AdminModule,
   ],
   providers: [
     // L'ordre compte : débit → authentification → autorisation.

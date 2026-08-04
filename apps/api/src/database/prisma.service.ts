@@ -123,6 +123,21 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
   }
 
   /**
+   * Requête brute pour un tenant DONNÉ, hors `TenantContext`.
+   *
+   * Utilisée par le back-office plateforme, qui interroge successivement chaque
+   * boutique : il n'a pas de contexte tenant ambiant puisqu'il les parcourt
+   * toutes.
+   */
+  async queryRawForTenant<T>(tenantId: string, query: Prisma.Sql): Promise<T> {
+    const [, rows] = await this.$transaction([
+      this.$executeRawUnsafe(`SELECT set_config('app.tenant_id', '${assertUuid(tenantId)}', true)`),
+      this.$queryRaw(query),
+    ])
+    return rows as T
+  }
+
+  /**
    * Exécute plusieurs écritures dans UNE SEULE transaction, contexte RLS posé.
    *
    * `withTenantIsolation()` ne convient pas ici : il enveloppe chaque opération

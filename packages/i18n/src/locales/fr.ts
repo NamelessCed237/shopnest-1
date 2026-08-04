@@ -311,6 +311,16 @@ export const fr: Record<string, string> = {
     "Le produit est archivé et non supprimé : les commandes passées continuent d’afficher son nom et son prix.",
   'products.form.archivedHint':
     "Ce produit est archivé : il n’apparaît plus dans la boutique, mais reste visible dans l’historique des commandes.",
+  'products.form.images': 'Images',
+  'products.form.imagesPrompt': 'Choisir des images ou les déposer ici',
+  'products.form.imagesHint': 'JPEG, PNG, WebP ou AVIF — {size} Mo maximum, {max} images.',
+  'products.form.imagesCover': 'Principale',
+  'products.form.imagesRemove': "Retirer l’image",
+  'products.form.imagesMoveLeft': 'Déplacer vers la gauche',
+  'products.form.imagesMoveRight': 'Déplacer vers la droite',
+  'products.form.imagesFull': 'Maximum de {max} images atteint.',
+  'products.form.imagesUploading': 'Envoi en cours',
+  'products.form.imagesUnsaved': "Les images ne seront rattachées qu’après enregistrement.",
   'products.form.status.draft.hint': 'Invisible dans la boutique',
   'products.form.status.active.hint': 'En vente',
   'products.form.status.archived.hint': 'Retiré du catalogue',
@@ -484,6 +494,12 @@ export const fr: Record<string, string> = {
   'errors.product.slugTaken': 'Cette adresse est déjà utilisée par un autre produit.',
   'errors.product.invalidSlug': 'Adresse invalide : lettres minuscules, chiffres et tirets.',
   'errors.tenant.invalidSlug': 'Identifiant de boutique invalide.',
+
+  'errors.upload.unsupportedType': 'Format non accepté. Utilisez JPEG, PNG, WebP ou AVIF.',
+  'errors.upload.tooLarge': 'Fichier trop lourd : 5 Mo maximum.',
+  'errors.upload.empty': 'Ce fichier est vide.',
+  'errors.upload.expired': "Le lien d’envoi a expiré. Réessayez.",
+  'errors.upload.failed': "L’envoi a échoué. Réessayez.",
 
   'payment.awaitingConfirmation.title': 'Validez sur votre téléphone',
   'payment.awaitingConfirmation.body':

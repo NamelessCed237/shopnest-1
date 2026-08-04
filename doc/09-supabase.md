@@ -194,6 +194,50 @@ Les écrans n'ont **pas** été écrits contre le mode factice : ils sont écrit
 contre `@shopnest/contracts`. C'est ce qui rend la bascule possible en changeant
 un drapeau.
 
+## 9 bis. Stockage des images produit
+
+Les fichiers ne transitent **jamais** par l'API. Elle délivre un *ticket* — une
+URL d'écriture signée, valable quinze minutes pour un seul chemin, un seul type
+et une seule taille — et le navigateur téléverse directement vers le stockage.
+Faire passer les octets par le backend paierait la bande passante deux fois et
+monopoliserait un worker Node pendant tout l'envoi.
+
+### Sans configuration : pilote local
+
+En l'absence de `SUPABASE_URL` et `SUPABASE_SERVICE_ROLE_KEY`, l'API écrit dans
+`apps/api/.storage` et sert les fichiers elle-même. Un dépôt fraîchement cloné
+peut donc téléverser une image sans compte Supabase. Le pilote local reproduit
+le même contrat — ticket signé, envoi direct, URL publique — pour que ce qui
+fonctionne en local fonctionne en production.
+
+`env.schema` le **refuse en staging et en production** : le disque d'un
+conteneur disparaît au déploiement suivant, et les images avec lui.
+
+### Avec Supabase Storage
+
+1. *Storage → New bucket*, nom `product-images`, cocher **Public bucket** — une
+   image produit s'affiche dans la boutique, sans session.
+2. *Project Settings → API* : relever l'URL du projet et la clé `service_role`.
+3. Renseigner `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` et `STORAGE_BUCKET`.
+
+> ⚠️ `SUPABASE_SERVICE_ROLE_KEY` contourne toute la RLS. Elle ne quitte jamais
+> le backend : le navigateur ne reçoit qu'un ticket signé.
+
+Les fichiers sont rangés sous `<tenantId>/<usage>/<uuid>.<ext>`. Le préfixe par
+tenant rend l'appartenance lisible sur le chemin, permet de purger une boutique
+fermée d'un seul appel, et laisse la porte ouverte à une politique de bucket par
+préfixe. Le nom de fichier envoyé par le client n'est jamais repris — un UUID
+tiré au sort écarte d'un coup la remontée de répertoire, la double extension et
+l'écrasement accidentel.
+
+### Ce qui n'est pas fait
+
+Retirer une image d'une fiche **ne supprime pas le fichier** du stockage : il
+devient orphelin. C'est délibéré pour l'instant — supprimer immédiatement
+rendrait tout retour en arrière impossible, et une même URL peut avoir été
+copiée ailleurs. Le ménage relève d'une tâche planifiée qui croise les clés du
+bucket avec les `imageUrls` référencées ; elle reste à écrire.
+
 ## 10. Sauvegardes et coût
 
 - Le **plan gratuit met le projet en pause après une semaine d'inactivité**.
@@ -217,6 +261,7 @@ Tous les domaines consommés par le dashboard sont désormais servis par l'API :
 | `analytics` | tuiles, série quotidienne, alertes de stock, ventilations |
 | `billing` | plan, quotas consommés, relevé mensuel des commissions |
 | `settings` | profil de la boutique, domaine personnalisé, équipe |
+| `uploads` | ticket d'envoi signé (voir §9 bis) |
 
 `VITE_LIVE_DOMAINS` les liste tous. L'implémentation factice reste en place :
 elle sert de mode démonstration hors ligne et de fixture aux tests.

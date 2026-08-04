@@ -10,6 +10,7 @@ import {
   ordersEndpoints,
   productsEndpoints,
   settingsEndpoints,
+  uploadsEndpoints,
 } from '@shopnest/api-client'
 import {
   fakeAuthEndpoints,
@@ -21,6 +22,7 @@ import {
 import { fakeAnalyticsEndpoints, fakeOrderEndpoints } from './fake/fake-orders-api'
 import { fakeCustomerEndpoints } from './fake/fake-customers-api'
 import { fakeCategoryCrudEndpoints } from './fake/fake-categories-api'
+import { fakeUploadEndpoints } from './fake/fake-uploads-api'
 
 /**
  * doc/06 §3 — le client est plateforme-agnostique ; c'est ICI qu'on injecte
@@ -128,6 +130,16 @@ export const api = {
   analytics: isLive('analytics') ? analyticsEndpoints(apiClient) : fakeAnalyticsEndpoints,
   customers: isLive('customers') ? customersEndpoints(apiClient) : fakeCustomerEndpoints,
   categories: isLive('categories') ? categoriesEndpoints(apiClient) : fakeCategoryCrudEndpoints,
+
+  /**
+   * L'envoi de fichiers suit le sort des PRODUITS, pas le sien.
+   *
+   * C'est le formulaire produit qui téléverse, et les deux doivent parler à la
+   * même source : une image déposée sur le vrai bucket alors que le catalogue
+   * est en mémoire donnerait une fiche factice pointant vers une URL réelle,
+   * qui survivrait au rechargement pendant que le produit disparaîtrait.
+   */
+  uploads: isLive('products') ? uploadsEndpoints(apiClient) : fakeUploadEndpoints,
 
   /**
    * Facturation et paramètres n'ont PAS d'équivalent factice.

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { ListProductsQuery, Product } from '@shopnest/contracts'
 import { useTranslation } from '@shopnest/i18n/react'
-import { Button, DataTable, EmptyState, type DataTableColumn } from '@shopnest/ui-web'
+import { Button, DataTable, EmptyState, Icon, type DataTableColumn } from '@shopnest/ui-web'
 import { countLabelKey } from '../../../lib/count-label'
 import { BulkActionBar } from './BulkActionBar'
 import { useProducts, type ProductFilters } from '../api/use-products'
@@ -38,9 +38,12 @@ export function ProductsTable({
         header: t('products.columns.name'),
         sortable: true,
         render: (product) => (
-          <div className="flex flex-col">
-            <span className="font-medium">{product.name}</span>
-            <span className="text-xs text-text-secondary">{product.slug}</span>
+          <div className="flex items-center gap-sm">
+            <ProductThumbnail product={product} />
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate font-medium">{product.name}</span>
+              <span className="truncate text-xs text-text-secondary">{product.slug}</span>
+            </div>
           </div>
         ),
       },
@@ -143,5 +146,35 @@ export function ProductsTable({
 
       <BulkActionBar selectedIds={selectedIds} onClear={() => setSelectedIds([])} />
     </div>
+  )
+}
+
+/**
+ * Vignette de la première image, ou emplacement vide.
+ *
+ * L'emplacement vide est DESSINÉ plutôt qu'omis : sans lui, les lignes sans
+ * image auraient leur nom décalé de 40 px par rapport aux autres, et la
+ * colonne cesserait de se lire d'un coup d'œil. Il signale aussi, sans texte,
+ * les fiches auxquelles il manque une photo.
+ */
+function ProductThumbnail({ product }: { product: Product }) {
+  const source = product.imageUrls[0]
+
+  if (!source) {
+    return (
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-dashed border-border-base text-text-disabled">
+        <Icon name="image" />
+      </span>
+    )
+  }
+
+  return (
+    // `alt` vide : le nom du produit est juste à côté, dans la même cellule.
+    <img
+      src={source}
+      alt=""
+      loading="lazy"
+      className="h-10 w-10 shrink-0 rounded-md border border-border-base object-cover"
+    />
   )
 }

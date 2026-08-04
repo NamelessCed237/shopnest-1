@@ -308,6 +308,16 @@ export const en: Record<string, string> = {
     'The product is archived, not deleted: past orders keep showing its name and price.',
   'products.form.archivedHint':
     'This product is archived: it no longer appears in the store, but remains visible in order history.',
+  'products.form.images': 'Images',
+  'products.form.imagesPrompt': 'Choose images or drop them here',
+  'products.form.imagesHint': 'JPEG, PNG, WebP or AVIF — {size} MB max, {max} images.',
+  'products.form.imagesCover': 'Cover',
+  'products.form.imagesRemove': 'Remove image',
+  'products.form.imagesMoveLeft': 'Move left',
+  'products.form.imagesMoveRight': 'Move right',
+  'products.form.imagesFull': 'Maximum of {max} images reached.',
+  'products.form.imagesUploading': 'Uploading',
+  'products.form.imagesUnsaved': 'Images are attached to the product only once you save.',
   'products.form.status.draft.hint': 'Hidden from the store',
   'products.form.status.active.hint': 'On sale',
   'products.form.status.archived.hint': 'Removed from catalog',
@@ -481,6 +491,12 @@ export const en: Record<string, string> = {
   'errors.product.slugTaken': 'This slug is already used by another product.',
   'errors.product.invalidSlug': 'Invalid slug: lowercase letters, digits and hyphens.',
   'errors.tenant.invalidSlug': 'Invalid store identifier.',
+
+  'errors.upload.unsupportedType': 'Unsupported format. Use JPEG, PNG, WebP or AVIF.',
+  'errors.upload.tooLarge': 'File too large: 5 MB maximum.',
+  'errors.upload.empty': 'This file is empty.',
+  'errors.upload.expired': 'The upload link expired. Please try again.',
+  'errors.upload.failed': 'Upload failed. Please try again.',
 
   'payment.awaitingConfirmation.title': 'Confirm on your phone',
   'payment.awaitingConfirmation.body':

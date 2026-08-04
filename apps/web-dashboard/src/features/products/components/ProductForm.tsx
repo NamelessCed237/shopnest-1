@@ -2,8 +2,10 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
-  CreateProductSchema,
+  MAX_IMAGE_BYTES,
+  MAX_PRODUCT_IMAGES,
   PRODUCT_STATUS,
+  CreateProductSchema,
   type AppError,
   type CreateProductInput,
   type Product,
@@ -11,8 +13,16 @@ import {
 } from '@shopnest/contracts'
 import { slugify } from '@shopnest/utils'
 import { useTranslation } from '@shopnest/i18n/react'
-import { Alert, Button, Card, Dropdown, TextInput, Textarea } from '@shopnest/ui-web'
-import { entityResolver } from '@/lib/api'
+import {
+  Alert,
+  Button,
+  Card,
+  Dropdown,
+  ImageUploader,
+  TextInput,
+  Textarea,
+} from '@shopnest/ui-web'
+import { api, entityResolver } from '@/lib/api'
 
 export interface ProductFormProps {
   /** Absent en création. */
@@ -215,6 +225,35 @@ export function ProductForm({
               />
             </div>
           </Card>
+
+          <Card title={t('products.form.images')}>
+            <ImageUploader
+              value={values.imageUrls ?? []}
+              onChange={(urls) => setValue('imageUrls', urls, { shouldDirty: true })}
+              /*
+               * `api.uploads.upload` fait les deux appels — ticket puis dépôt —
+               * et renvoie l'URL publique. Le composant, lui, ignore HTTP :
+               * c'est ce qui permet de le réutiliser tel quel dans le
+               * back-office plateforme, qui parle à une autre API.
+               */
+              upload={(file) => api.uploads.upload(file)}
+              max={MAX_PRODUCT_IMAGES}
+              formatError={(error) => t(errorKey(error))}
+              labels={{
+                prompt: t('products.form.imagesPrompt'),
+                hint: t('products.form.imagesHint', {
+                  max: MAX_PRODUCT_IMAGES,
+                  size: Math.round(MAX_IMAGE_BYTES / (1024 * 1024)),
+                }),
+                cover: t('products.form.imagesCover'),
+                remove: t('products.form.imagesRemove'),
+                moveLeft: t('products.form.imagesMoveLeft'),
+                moveRight: t('products.form.imagesMoveRight'),
+                full: t('products.form.imagesFull', { max: MAX_PRODUCT_IMAGES }),
+                uploading: t('products.form.imagesUploading'),
+              }}
+            />
+          </Card>
         </div>
 
         <div className="flex flex-col gap-md">
@@ -251,6 +290,18 @@ export function ProductForm({
         </div>
       </div>
 
+      {/*
+        Une image téléversée n'est pas encore ENREGISTRÉE : elle est entrée
+        dans le formulaire, et c'est « Enregistrer » qui la rattache au
+        produit. Sans ce rappel, on quitte la page en croyant avoir sauvegardé
+        — le fichier est bien sur le stockage, mais aucun produit ne le cite.
+      */}
+      {(values.imageUrls?.length ?? 0) > 0 && formState.isDirty && (
+        <p className="text-right text-xs text-text-secondary">
+          {t('products.form.imagesUnsaved')}
+        </p>
+      )}
+
       <div className="flex flex-wrap justify-end gap-sm">
         <Button variant="ghost" onClick={onCancel} disabled={submitting}>
           {t('common.cancel')}
@@ -261,4 +312,16 @@ export function ProductForm({
       </div>
     </form>
   )
+}
+
+/**
+ * Clé de message d'une erreur d'envoi.
+ *
+ * L'API factice comme le vrai client rejettent un `AppError`, mais une panne
+ * réseau produit un `TypeError` brut : sans ce repli, la vignette en échec
+ * afficherait « undefined » à côté du nom du fichier.
+ */
+function errorKey(error: unknown): string {
+  const key = (error as AppError | undefined)?.userMessageKey
+  return typeof key === 'string' ? key : 'errors.generic'
 }

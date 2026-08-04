@@ -15,6 +15,9 @@ build/
 .env.*.local
 !.env.example
 
+# Fichiers téléversés en développement (pilote de stockage local)
+.storage/
+
 # Tests
 coverage/
 playwright-report/

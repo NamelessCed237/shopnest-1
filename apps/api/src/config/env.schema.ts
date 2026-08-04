@@ -48,10 +48,34 @@ const BaseEnvSchema = z.object({
   ORANGE_MONEY_BASE_URL: z.string().url().optional(),
   ORANGE_MONEY_API_KEY: z.string().optional(),
 
-  STORAGE_ENDPOINT: z.string().url().optional(),
-  STORAGE_BUCKET: z.string().min(1).optional(),
-  STORAGE_ACCESS_KEY: z.string().min(1).optional(),
-  STORAGE_SECRET_KEY: z.string().min(1).optional(),
+  /**
+   * Stockage des fichiers — Supabase Storage.
+   *
+   * Les trois sont solidaires : sans elles, le module bascule sur le pilote
+   * LOCAL (disque + route statique), ce qui permet de cloner le dépôt et de
+   * téléverser une image sans compte Supabase. Ce pilote est refusé en
+   * staging et en production, où le disque d'un conteneur est éphémère.
+   *
+   * ⚠️ `SUPABASE_SERVICE_ROLE_KEY` contourne toute la RLS de Supabase : elle
+   * ne quitte JAMAIS le backend. Le navigateur ne reçoit qu'un ticket signé,
+   * limité à un seul fichier et à quelques minutes.
+   */
+  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(20).optional(),
+  STORAGE_BUCKET: z.string().min(1).default('product-images'),
+
+  /**
+   * URL publique de l'API, telle que le NAVIGATEUR la voit.
+   *
+   * Le pilote local doit fabriquer des URL absolues — `imageUrls` est un
+   * tableau d'URL dans le contrat, et une adresse relative y échouerait à la
+   * validation. Le serveur ne peut pas la déduire de `req.host`, qui vaut
+   * `localhost` derrière un proxy comme dans un conteneur.
+   */
+  API_PUBLIC_URL: z.string().url().default('http://localhost:3000/api'),
+
+  /** Racine du pilote local. Relative à `apps/api`. */
+  STORAGE_LOCAL_DIR: z.string().default('.storage'),
 
   APP_BASE_DOMAIN: z.string().default('shopnest.app'),
   CORS_ALLOWED_ORIGINS: z.string().default(''),
@@ -64,10 +88,11 @@ const REQUIRED_IN_PRODUCTION = [
   'MEILISEARCH_API_KEY',
   'STRIPE_SECRET_KEY',
   'STRIPE_WEBHOOK_SECRET',
-  'STORAGE_ENDPOINT',
-  'STORAGE_BUCKET',
-  'STORAGE_ACCESS_KEY',
-  'STORAGE_SECRET_KEY',
+  // Sans elles, le stockage retombe sur le disque local : acceptable sur un
+  // poste de développement, jamais sur un conteneur dont le disque disparaît
+  // au prochain déploiement — les images produit seraient perdues.
+  'SUPABASE_URL',
+  'SUPABASE_SERVICE_ROLE_KEY',
 ] as const
 
 export const EnvSchema = BaseEnvSchema.superRefine((env, ctx) => {

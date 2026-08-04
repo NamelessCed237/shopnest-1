@@ -135,6 +135,23 @@ const PATHS = {
     </>
   ),
   shield: <path d="M12 3.5 5 6v6c0 4.2 3 7.4 7 8.5 4-1.1 7-4.3 7-8.5V6Z" />,
+
+  // Médias
+  image: (
+    <>
+      <rect x="3" y="4.5" width="18" height="15" rx="2" />
+      <circle cx="8.5" cy="9.5" r="1.5" />
+      {/* Le « paysage » part du bord droit : une colline flottante au milieu du
+          cadre se lit mal à 16 px, taille réelle de l'icône dans un tableau. */}
+      <path d="m3.5 16.5 4.5-4.5 4 4 3-3 5.5 5.5" />
+    </>
+  ),
+  upload: (
+    <>
+      <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" />
+      <path d="M4 15v3.5a1.5 1.5 0 0 0 1.5 1.5h13a1.5 1.5 0 0 0 1.5-1.5V15" />
+    </>
+  ),
 } as const
 
 export type IconName = keyof typeof PATHS

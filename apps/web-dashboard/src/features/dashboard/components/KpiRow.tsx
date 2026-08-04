@@ -1,6 +1,6 @@
 import type { DashboardSummary } from '@shopnest/contracts'
 import { useTranslation } from '@shopnest/i18n/react'
-import { StatTile } from '@shopnest/ui-web'
+import { Icon, StatTile } from '@shopnest/ui-web'
 
 /**
  * skill dataviz — une poignée de chiffres phares se rend en RANGÉE DE TUILES,
@@ -20,6 +20,7 @@ export function KpiRow({
     <div className="grid grid-cols-1 gap-md sm:grid-cols-2 xl:grid-cols-4">
       <StatTile
         label={t('dashboard.kpi.revenue')}
+        icon={<Icon name="store" />}
         value={summary ? money(summary.revenue) : '—'}
         delta={summary?.revenueDelta.ratio}
         loading={loading}
@@ -27,6 +28,7 @@ export function KpiRow({
       />
       <StatTile
         label={t('dashboard.kpi.orders')}
+        icon={<Icon name="sort" />}
         value={summary ? number(summary.orderCount) : '—'}
         delta={summary?.orderCountDelta.ratio}
         loading={loading}
@@ -34,6 +36,7 @@ export function KpiRow({
       />
       <StatTile
         label={t('dashboard.kpi.averageOrderValue')}
+        icon={<Icon name="credit-card" />}
         value={summary ? money(summary.averageOrderValue) : '—'}
         delta={summary?.averageOrderValueDelta.ratio}
         loading={loading}
@@ -41,6 +44,7 @@ export function KpiRow({
       />
       <StatTile
         label={t('dashboard.kpi.stockAlerts')}
+        icon={<Icon name="info" />}
         value={summary ? number(summary.lowStockCount + summary.outOfStockCount) : '—'}
         loading={loading}
         hint={

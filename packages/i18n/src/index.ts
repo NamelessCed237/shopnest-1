@@ -62,6 +62,32 @@ export function formatMoney(money: Money, locale: Locale = 'fr'): string {
   return formatter.format(money.amountCents / 10 ** digits)
 }
 
+/**
+ * Montant ABRÉGÉ — « 25 M FCFA » au lieu de « 25 000 000 FCFA ».
+ *
+ * Destiné aux axes de graphique et aux espaces contraints, jamais à un montant
+ * qu'on lit pour le vérifier : un total de facture s'écrit en entier.
+ *
+ * Sans lui, l'axe d'un graphique en francs CFA affiche « 10 000 000 FCFA », et
+ * la gouttière ne peut pas suivre : l'étiquette se retrouve rognée en
+ * « 000 000 ». Le problème est pire dans les devises SANS décimales — les
+ * marchés d'Afrique centrale et de l'Ouest — où les montants comptent trois
+ * chiffres de plus qu'en euros pour la même valeur.
+ *
+ * `compactDisplay: 'short'` et une seule décimale significative : « 1,2 M »
+ * reste lisible là où « 1,25 M » rallonge sans rien apprendre à cette échelle.
+ */
+export function formatMoneyCompact(money: Money, locale: Locale = 'fr'): string {
+  const digits = Math.log10(minorUnitsPerMajor(money.currency, locale))
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: money.currency,
+    notation: 'compact',
+    compactDisplay: 'short',
+    maximumFractionDigits: 1,
+  }).format(money.amountCents / 10 ** digits)
+}
+
 /** Nombre d'unités mineures par unité majeure — 100 pour EUR, 1 pour XAF. */
 export function minorUnitsPerMajor(currency: string, locale: Locale = 'fr'): number {
   const digits =

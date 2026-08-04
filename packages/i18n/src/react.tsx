@@ -12,6 +12,7 @@ import {
   LOCALES,
   formatDate,
   formatMoney,
+  formatMoneyCompact,
   formatNumber,
   translate,
   translatePlural,
@@ -34,6 +35,8 @@ interface I18nValue {
   /** Pluriel : résout `<clé>_one` / `<clé>_other` selon `count`. */
   tp: (key: string, count: number, vars?: Record<string, string | number>) => string
   money: (value: Money) => string
+  /** Montant abrégé — axes de graphique et espaces contraints. */
+  moneyCompact: (value: Money) => string
   date: (iso: string) => string
   number: (value: number) => string
 }
@@ -102,6 +105,7 @@ export function I18nProvider({
       t,
       tp,
       money: (v) => formatMoney(v, locale),
+      moneyCompact: (v) => formatMoneyCompact(v, locale),
       date: (iso) => formatDate(iso, locale),
       number: (v) => formatNumber(v, locale),
     }),

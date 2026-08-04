@@ -20,7 +20,7 @@ export function RevenueChart({
   range,
   onRangeChange,
 }: RevenueChartProps) {
-  const { t, money, locale } = useTranslation()
+  const { t, money, moneyCompact, locale } = useTranslation()
   const [showTable, setShowTable] = useState(false)
 
   const points = useMemo<TrendPoint[]>(
@@ -70,8 +70,13 @@ export function RevenueChart({
           <TrendChart
             points={points}
             ariaLabel={t('dashboard.chart.ariaLabel')}
+            /*
+              Étiquettes d'axe ABRÉGÉES : « 25 M FCFA » et non « 25 000 000 FCFA ».
+              Le montant complet reste dans l'infobulle et dans la vue tableau,
+              là où on vient le lire précisément.
+            */
             formatTick={(value) =>
-              money({ amountCents: value, currency: summary?.revenue.currency ?? 'XAF' })
+              moneyCompact({ amountCents: value, currency: summary?.revenue.currency ?? 'XAF' })
             }
           />
 

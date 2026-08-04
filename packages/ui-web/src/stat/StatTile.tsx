@@ -37,7 +37,13 @@ export function StatTile({
      * tracer — et une bordure très pâle suffit à garder la tuile lisible en
      * contraste élevé, où les ombres sont souvent supprimées.
      */
-    <div className="flex flex-col gap-sm rounded-lg border border-border-base/60 bg-surface-base p-md shadow-sm">
+    /*
+     * `min-w-0` : sans lui, une tuile placée dans une grille refuse de
+     * rétrécir sous la largeur de son contenu (`min-width: auto` est la valeur
+     * initiale des éléments de grille). Le débordement remontait alors jusqu'à
+     * la page, qui gagnait une barre de défilement horizontale.
+     */
+    <div className="flex min-w-0 flex-col gap-sm rounded-lg border border-border-base/60 bg-surface-base p-md shadow-sm">
       <div className="flex items-center justify-between gap-sm">
         <span className="text-xs font-medium uppercase tracking-wide text-text-secondary">
           {label}
@@ -53,9 +59,23 @@ export function StatTile({
       {loading ? (
         <div className="h-9 w-28 animate-pulse rounded-sm bg-surface-sunken" />
       ) : (
-        // `tracking-tight` : un grand nombre tabulaire respire trop par défaut
-        // et paraît étiré à cette taille.
-        <span className="text-3xl font-semibold tracking-tight tabular-nums text-text-primary">
+        /*
+         * La taille est PROGRESSIVE, et la valeur peut revenir à la ligne.
+         *
+         * Un `text-3xl` inconditionnel débordait la tuile sur un écran de
+         * portable : les devises sans décimales — franc CFA, précisément le
+         * marché visé — comptent trois chiffres de plus qu'un euro à valeur
+         * égale, et « 24 742 750 FCFA » ne tient pas dans un quart de largeur
+         * à 1366 px. Le montant était coupé net.
+         *
+         * Un chiffre tronqué est pire qu'un chiffre plus petit : il se lit
+         * comme une autre valeur. On réduit donc au besoin, et `break-words`
+         * garantit qu'aucune devise exotique ne pourra déborder à nouveau.
+         *
+         * `tracking-tight` : un grand nombre tabulaire respire trop par défaut
+         * et paraît étiré à cette taille.
+         */
+        <span className="break-words text-2xl font-semibold leading-tight tracking-tight tabular-nums text-text-primary 2xl:text-3xl">
           {value}
         </span>
       )}

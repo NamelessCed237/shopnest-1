@@ -1,6 +1,6 @@
 import type { OrderStatus } from '@shopnest/contracts'
 import { useTranslation } from '@shopnest/i18n/react'
-import { Alert } from '@shopnest/ui-web'
+import { Alert, Icon } from '@shopnest/ui-web'
 
 /**
  * Progression d'une commande.
@@ -53,13 +53,13 @@ export function OrderProgress({ status }: { status: OrderStatus }) {
                   : 'bg-surface-sunken text-text-disabled'
               }`}
             >
-              <span aria-hidden="true">{reached ? '✓' : index + 1}</span>
+              <span aria-hidden="true">{reached ? <Icon name="check" size="sm" /> : index + 1}</span>
               {t(`orders.status.${step}`)}
             </span>
 
             {index < FLOW.length - 1 && (
-              <span aria-hidden="true" className="text-text-disabled">
-                →
+              <span className="text-text-disabled">
+                <Icon name="chevron-right" size="sm" />
               </span>
             )}
           </li>

@@ -1,7 +1,7 @@
 import { Link, useParams } from '@tanstack/react-router'
 import type { Order } from '@shopnest/contracts'
 import { useTranslation } from '@shopnest/i18n/react'
-import { Alert, Button, Card } from '@shopnest/ui-web'
+import { Alert, Button, Card, Icon } from '@shopnest/ui-web'
 import {
   OrderActions,
   OrderItemsCard,
@@ -21,7 +21,7 @@ export function OrderDetailPage() {
     <div className="flex flex-col gap-lg">
       <div className="print:hidden">
         <Link to="/orders" className="text-sm text-brand-primary hover:underline">
-          ← {t('orders.detail.back')}
+          <Icon name="arrow-left" /> {t('orders.detail.back')}
         </Link>
       </div>
 

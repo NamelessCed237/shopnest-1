@@ -1,6 +1,6 @@
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { useTranslation } from '@shopnest/i18n/react'
-import { Alert, Button, Card, StatTile } from '@shopnest/ui-web'
+import { Alert, Button, Card, Icon, StatTile } from '@shopnest/ui-web'
 import {
   CustomerOrderHistory,
   CustomerProfileCard,
@@ -17,7 +17,7 @@ export function CustomerDetailPage() {
     <div className="flex flex-col gap-lg">
       <div>
         <Link to="/customers" className="text-sm text-brand-primary hover:underline">
-          ← {t('customers.detail.back')}
+          <Icon name="arrow-left" /> {t('customers.detail.back')}
         </Link>
       </div>
 

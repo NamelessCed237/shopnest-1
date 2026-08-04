@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import type { CreateProductInput } from '@shopnest/contracts'
 import { useTranslation } from '@shopnest/i18n/react'
-import { Alert, Button, Card, Modal } from '@shopnest/ui-web'
+import { Alert, Button, Card, Icon, Modal } from '@shopnest/ui-web'
 import {
   ProductForm,
   ProductVariantsCard,
@@ -157,7 +157,7 @@ function BackLink() {
   return (
     <div>
       <Link to="/products" className="text-sm text-brand-primary hover:underline">
-        ← {t('products.form.back')}
+        <Icon name="arrow-left" /> {t('products.form.back')}
       </Link>
     </div>
   )

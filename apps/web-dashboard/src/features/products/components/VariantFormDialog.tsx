@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { AppError, ProductVariant } from '@shopnest/contracts'
 import { useTranslation } from '@shopnest/i18n/react'
-import { Alert, Button, Modal, TextInput } from '@shopnest/ui-web'
+import { Alert, Button, Icon, Modal, TextInput } from '@shopnest/ui-web'
 import { useAddVariant, useUpdateVariant } from '../api/use-variant-mutations'
 
 export interface VariantFormDialogProps {
@@ -185,7 +185,7 @@ export function VariantFormDialog({
                 aria-label={t('variants.form.removeAttribute')}
                 onClick={() => setAttributes((rows) => rows.filter((_, i) => i !== index))}
               >
-                ✕
+                <Icon name="close" />
               </Button>
             </div>
           ))}

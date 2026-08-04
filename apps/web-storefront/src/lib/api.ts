@@ -1,4 +1,9 @@
-import { createApiClient, createEntityResolver } from '@shopnest/api-client'
+import {
+  catalogEndpoints,
+  checkoutEndpoints,
+  createApiClient,
+  createEntityResolver,
+} from '@shopnest/api-client'
 
 /**
  * doc/06 §3 — le client est plateforme-agnostique ; c'est ICI qu'on injecte
@@ -24,10 +29,18 @@ export const api = createApiClient({
     },
   },
 
-  /** Storefront public : le tenant vient toujours du sous-domaine ou du domaine personnalisé. */
+  /**
+   * Storefront public : le tenant vient du sous-domaine ou du domaine
+   * personnalisé.
+   *
+   * `localhost` n'en a pas. `VITE_DEV_TENANT` en tient lieu, exactement comme
+   * dans le dashboard : sans lui, le catalogue et le paiement répondent
+   * « tenant context missing » et la boutique reste vide sans explication.
+   */
   getTenantId: () => {
     const [sub] = window.location.hostname.split('.')
-    return sub && sub !== 'localhost' ? sub : undefined
+    if (sub && sub !== 'localhost' && sub !== '127') return sub
+    return import.meta.env.VITE_DEV_TENANT || undefined
   },
 
   onUnauthenticated: () => {
@@ -42,3 +55,16 @@ export const api = createApiClient({
  * sans que le composant connaisse le détail HTTP.
  */
 export const entityResolver = createEntityResolver(api)
+
+/**
+ * Les deux seuls domaines dont la boutique a besoin.
+ *
+ * Aucun repli sur une API factice, contrairement au dashboard : une vitrine
+ * qui affiche des produits inventés et accepte des paiements imaginaires ne
+ * ressemble pas à une démonstration, elle ressemble à une escroquerie. Sans
+ * API, la boutique affiche une erreur — ce qui est la vérité.
+ */
+export const storefront = {
+  catalog: catalogEndpoints(api),
+  checkout: checkoutEndpoints(api),
+}

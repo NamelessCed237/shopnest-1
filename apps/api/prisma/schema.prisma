@@ -236,6 +236,26 @@ model Order {
   /// entre la lecture et l'écriture.
   refundedCents   Int      @default(0) @map("refunded_cents")
   currency        String   @db.Char(3)
+
+  /// Adresse RECOPIÉE au moment de la commande, jamais référencée.
+  ///
+  /// Une table `addresses` supposerait un carnet d'adresses, donc un compte
+  /// avant tout achat — l'inverse de ce que le tunnel doit permettre. Et une
+  /// adresse partagée serait réécrite par un déménagement, changeant après
+  /// coup la destination d'une commande déjà expédiée.
+  ///
+  /// Nullable : les commandes du seed, antérieures au tunnel, n'en ont pas.
+  shippingAddress Json?    @map("shipping_address")
+  /// Seul point de contact d'une commande passée en invité.
+  email           String?
+
+  /// Laissez-passer de consultation, remis une fois à l'acheteur.
+  ///
+  /// Sans lui, suivre une commande sans compte exigerait un endpoint ouvert
+  /// par référence — donc énumérable, une boutique laissant lire toutes ses
+  /// ventes. Il est tiré au sort et ne donne accès qu'au suivi.
+  trackingToken   String?  @map("tracking_token")
+
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -306,6 +326,12 @@ model Payment {
   provider    String
   externalId  String?   @map("external_id")
   expiresAt   DateTime? @map("expires_at")
+  /// Motif d'échec renvoyé par le prestataire, tel quel.
+  ///
+  /// « Solde insuffisant » et « numéro inconnu » appellent deux réactions
+  /// différentes de l'acheteur ; un simple statut `failed` les confond, et le
+  /// vendeur qui reçoit l'appel n'a rien à répondre.
+  failureReason String? @map("failure_reason")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 

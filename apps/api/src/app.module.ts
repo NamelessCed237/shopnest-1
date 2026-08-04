@@ -18,6 +18,9 @@ import { BillingModule } from './modules/billing/billing.module'
 import { SettingsModule } from './modules/settings/settings.module'
 import { AdminModule } from './modules/admin/admin.module'
 import { UploadsModule } from './modules/uploads/uploads.module'
+import { PaymentsModule } from './modules/payments/payments.module'
+import { CheckoutModule } from './modules/checkout/checkout.module'
+import { CatalogModule } from './modules/catalog/catalog.module'
 import { TenantResolverMiddleware } from './tenancy/tenant-resolver.middleware'
 
 @Module({
@@ -45,6 +48,9 @@ import { TenantResolverMiddleware } from './tenancy/tenant-resolver.middleware'
     SettingsModule,
     AdminModule,
     UploadsModule,
+    PaymentsModule,
+    CheckoutModule,
+    CatalogModule,
   ],
   providers: [
     // L'ordre compte : débit → authentification → autorisation.

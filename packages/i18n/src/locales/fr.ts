@@ -495,6 +495,86 @@ export const fr: Record<string, string> = {
   'errors.product.invalidSlug': 'Adresse invalide : lettres minuscules, chiffres et tirets.',
   'errors.tenant.invalidSlug': 'Identifiant de boutique invalide.',
 
+  'storefront.steps.catalog': 'Boutique',
+  'storefront.steps.cart_one': 'Panier ({count})',
+  'storefront.steps.cart_other': 'Panier ({count})',
+  'storefront.steps.checkout': 'Commande',
+
+  'storefront.catalog.title': 'Tous les produits',
+  'storefront.catalog.addToCart': 'Ajouter au panier',
+  'storefront.catalog.outOfStock': 'Rupture de stock',
+  'storefront.catalog.empty': "Cette boutique n'a encore aucun produit en vente.",
+  'storefront.catalog.errorTitle': 'Catalogue indisponible',
+
+  'storefront.cart.title': 'Votre panier',
+  'storefront.cart.empty': 'Votre panier est vide.',
+  'storefront.cart.quantity': 'Quantité',
+  'storefront.cart.remove': "Retirer l'article",
+  'storefront.cart.subtotal': 'Sous-total',
+  'storefront.cart.checkout': 'Commander',
+  'storefront.cart.continue': 'Continuer mes achats',
+
+  'storefront.checkout.title': 'Finaliser la commande',
+  'storefront.checkout.summary': 'Récapitulatif',
+  'storefront.checkout.contact': 'Contact',
+  'storefront.checkout.email': 'Adresse e-mail',
+  'storefront.checkout.emailHint': 'Nous y enverrons la confirmation de commande.',
+  'storefront.checkout.delivery': 'Livraison',
+  'storefront.checkout.fullName': 'Nom complet',
+  'storefront.checkout.phone': 'Téléphone',
+  'storefront.checkout.phoneHint': 'Le livreur vous appellera à ce numéro.',
+  'storefront.checkout.line1': 'Adresse',
+  'storefront.checkout.city': 'Ville',
+  'storefront.checkout.country': 'Pays',
+  'storefront.checkout.countryHint': 'Code à deux lettres — CM, SN, FR…',
+  'storefront.checkout.payment': 'Paiement',
+  'storefront.checkout.method': 'Moyen de paiement',
+  'storefront.checkout.payerPhone': 'Numéro Mobile Money',
+  'storefront.checkout.payerPhoneHint': 'La demande de confirmation arrivera sur ce numéro.',
+  'storefront.checkout.subtotal': 'Sous-total :',
+  'storefront.checkout.pay': 'Payer',
+
+  'storefront.payment.title': 'Commande {reference}',
+  'storefront.payment.amount': 'Montant :',
+  'storefront.payment.awaitTitle': 'Validez sur le {phone}',
+  'storefront.payment.awaitBody':
+    'Une demande de confirmation vient de partir. Saisissez votre code secret sur votre téléphone ; cette page se met à jour toute seule.',
+  'storefront.payment.expiresIn': 'Expire dans {minutes} min {seconds} s.',
+  'storefront.payment.expired': 'La demande a expiré. Vous pouvez repasser commande.',
+  'storefront.payment.redirectBody':
+    'Le paiement par carte se fait sur la page sécurisée de notre prestataire.',
+  'storefront.payment.redirectAction': 'Payer par carte',
+  'storefront.payment.transferBody':
+    'Effectuez le virement avec les coordonnées ci-dessous. La commande sera préparée à réception.',
+  'storefront.payment.paidTitle': 'Paiement confirmé',
+  'storefront.payment.paidBody': 'Merci ! Un récapitulatif part vers {email}.',
+  'storefront.payment.failedTitle': "Le paiement n'a pas abouti",
+  'storefront.payment.failedBody':
+    'Aucun montant ne vous a été débité. Vous pouvez réessayer avec un autre moyen de paiement.',
+  'storefront.payment.keepToken': 'Conservez ce code pour suivre votre commande :',
+  'storefront.payment.backToShop': 'Retour à la boutique',
+
+  'errors.checkout.invalidEmail': 'Adresse e-mail invalide.',
+  'errors.checkout.payerPhoneInvalid': 'Numéro de téléphone invalide.',
+  'errors.address.fullName': 'Indiquez le nom du destinataire.',
+  'errors.address.phone': 'Numéro de téléphone invalide.',
+  'errors.address.line1': 'Indiquez une adresse de livraison.',
+  'errors.address.city': 'Indiquez la ville.',
+  'errors.address.country': 'Code pays à deux lettres — CM, SN, FR…',
+  'errors.address.tooLong': 'Ce champ est trop long.',
+
+  'errors.checkout.outOfStock':
+    "Un article de votre panier n'est plus disponible en quantité suffisante.",
+  'errors.checkout.unavailable': "Un article de votre panier n'est plus en vente.",
+  'errors.checkout.variantRequired': 'Choisissez une déclinaison pour cet article.',
+  'errors.checkout.mixedCurrencies': 'Les articles de ce panier ne sont pas dans la même devise.',
+  'errors.checkout.payerPhoneRequired':
+    'Un numéro Mobile Money est requis pour ce moyen de paiement.',
+  'errors.checkout.paymentFailed':
+    "Le paiement n'a pas pu être lancé. Réessayez dans un instant.",
+  'errors.checkout.methodUnavailable':
+    "Ce moyen de paiement n'est pas disponible sur cette boutique.",
+
   'errors.upload.unsupportedType': 'Format non accepté. Utilisez JPEG, PNG, WebP ou AVIF.',
   'errors.upload.tooLarge': 'Fichier trop lourd : 5 Mo maximum.',
   'errors.upload.empty': 'Ce fichier est vide.',

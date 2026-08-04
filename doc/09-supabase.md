@@ -238,6 +238,73 @@ rendrait tout retour en arrière impossible, et une même URL peut avoir été
 copiée ailleurs. Le ménage relève d'une tâche planifiée qui croise les clés du
 bucket avec les `imageUrls` référencées ; elle reste à écrire.
 
+## 9 ter. Paiements et tunnel d'achat
+
+### Ce qui n'est jamais cru sur parole
+
+Le panier vit dans le navigateur. Il affiche des montants ; **aucun n'est
+transmis**. `CheckoutSchema` n'accepte que des identifiants de produit et des
+quantités : prix, noms et disponibilité sont relus en base, et les totaux
+recalculés. Un panier trafiqué ne change que ce que l'acheteur voit avant de
+payer, jamais ce qu'il paie.
+
+Le tenant vient du sous-domaine, jamais du corps de la requête — sans quoi un
+appel choisirait la boutique qu'il souhaite débiter.
+
+### Réservation de stock
+
+Réservation et création de commande sont dans **une seule transaction**. La
+décrémentation s'écrit `UPDATE … WHERE stock >= quantité` : la comparaison et
+la soustraction sont la même instruction, donc deux commandes simultanées sur
+le dernier article ne peuvent pas réussir toutes les deux. Un échec à n'importe
+quel point annule tout — pas d'écriture de compensation, donc pas d'inventaire
+faux le jour où la compensation échoue à son tour.
+
+### Prestataires
+
+Interface `PaymentProvider` : `initiate` et `parseWebhook`, rien d'autre. Un
+paiement n'a que deux moments — on le déclenche, et on apprend plus tard ce
+qu'il est devenu.
+
+Sans clés, un **prestataire simulé** prend le relais. Il ne raccourcit rien : il
+émet une vraie requête de webhook, signée, vers le vrai endpoint, qui la
+déduplique dans la vraie table d'événements. Le jour où MTN est branché, seul
+`simulated.provider.ts` est remplacé. Il est refusé hors développement.
+
+Page de simulation : `GET /api/payments/simulator/:correlationId` — deux
+boutons, payer ou échouer.
+
+### Corrélation tenant ↔ paiement
+
+Un webhook arrive sans session, sans en-tête et sans sous-domaine. Or `payments`
+est protégée par la RLS : chercher le paiement sans savoir à quelle boutique il
+appartient ne renvoie **rien, en silence**.
+
+L'identifiant transporte donc le tenant : `<tenantId>.<uuid>`. Les trois
+prestataires visés le permettent (MTN laisse fixer `X-Reference-Id`, Orange
+accepte une référence marchand, Stripe des `metadata`). Pas de table de
+correspondance, donc pas de seconde source de vérité à synchroniser.
+
+### Suivi sans compte
+
+L'acheteur invité reçoit un **laissez-passer** tiré au sort. Sans lui, le suivi
+passerait par la référence — `CMD-02749`, séquentielle et lisible : la boutique
+laisserait lire toutes ses ventes à qui sait compter.
+
+### Ce qui n'est pas fait
+
+- **Livraison et taxe restent à zéro.** Les colonnes existent, les montants
+  circulent ; ce qui manque est une grille tarifaire par zone et un régime de
+  TVA par pays. « Livraison gratuite » est une promesse commerciale, pas une
+  valeur par défaut.
+- **Le plan `enterprise` ne prélève aucune commission**, son taux étant négocié
+  au cas par cas et pas encore stocké par boutique. Facturer un taux inventé
+  serait pire que ne rien facturer.
+- **Aucun courriel n'est envoyé.** L'écran annonce un récapitulatif ; il n'y a
+  pas encore d'expéditeur. C'est le chantier « notifications ».
+- **Le storefront n'a pas de routeur** : les étapes du tunnel n'ont pas d'URL.
+  Voir le TODO(#8) de `main.tsx` — routage et rendu serveur vont ensemble.
+
 ## 10. Sauvegardes et coût
 
 - Le **plan gratuit met le projet en pause après une semaine d'inactivité**.
@@ -262,6 +329,9 @@ Tous les domaines consommés par le dashboard sont désormais servis par l'API :
 | `billing` | plan, quotas consommés, relevé mensuel des commissions |
 | `settings` | profil de la boutique, domaine personnalisé, équipe |
 | `uploads` | ticket d'envoi signé (voir §9 bis) |
+| `catalog` | vue publique du catalogue — actifs seuls, sans le stock exact |
+| `checkout` | passage de commande et suivi par laissez-passer (voir §9 ter) |
+| `payments` | initiation, webhooks signés, simulateur de développement |
 
 `VITE_LIVE_DOMAINS` les liste tous. L'implémentation factice reste en place :
 elle sert de mode démonstration hors ligne et de fixture aux tests.

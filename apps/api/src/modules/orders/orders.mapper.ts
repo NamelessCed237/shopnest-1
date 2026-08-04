@@ -1,4 +1,13 @@
-import type { Money, Order, OrderItem, Payment, PaymentMethod, PaymentStatus } from '@shopnest/contracts'
+import { ShippingAddressSchema } from '@shopnest/contracts'
+import type {
+  Money,
+  Order,
+  OrderItem,
+  Payment,
+  PaymentMethod,
+  PaymentStatus,
+  ShippingAddress,
+} from '@shopnest/contracts'
 
 /**
  * Ligne Prisma → contrat. Même rôle que `products.mapper` : la base stocke des
@@ -40,6 +49,8 @@ interface OrderRow {
   platformFeeCents: number
   refundedCents: number
   currency: string
+  shippingAddress?: unknown
+  email?: string | null
   createdAt: Date
   items?: ItemRow[]
   payments?: PaymentRow[]
@@ -81,8 +92,26 @@ export function toOrder(row: OrderRow): Order {
     // plusieurs (une tentative Mobile Money échouée puis une réussie) : on
     // expose la DERNIÈRE, seule pertinente pour l'état courant.
     ...(row.payments?.length ? { payment: toPayment(row.payments[row.payments.length - 1]!) } : {}),
+    /*
+     * L'adresse est validée à la SORTIE et non recopiée telle quelle.
+     *
+     * C'est une colonne JSON : PostgreSQL n'en garantit pas la forme, et une
+     * commande écrite par une version antérieure du service — ou par un import —
+     * peut ne pas correspondre au contrat d'aujourd'hui. La renvoyer sans
+     * contrôle ferait tomber l'écran du vendeur sur un champ manquant, loin
+     * d'ici. On préfère l'omettre : le détail de commande sait déjà dire
+     * « adresse absente ».
+     */
+    ...parseShippingAddress(row.shippingAddress),
+    ...(row.email ? { email: row.email } : {}),
     createdAt: row.createdAt.toISOString(),
   }
+}
+
+function parseShippingAddress(raw: unknown): { shippingAddress?: ShippingAddress } {
+  if (!raw) return {}
+  const parsed = ShippingAddressSchema.safeParse(raw)
+  return parsed.success ? { shippingAddress: parsed.data } : {}
 }
 
 function toOrderItem(row: ItemRow, currency: string): OrderItem {

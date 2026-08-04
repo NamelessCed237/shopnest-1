@@ -77,6 +77,16 @@ const BaseEnvSchema = z.object({
   /** Racine du pilote local. Relative à `apps/api`. */
   STORAGE_LOCAL_DIR: z.string().default('.storage'),
 
+  /**
+   * Boutique publique — où renvoyer l'acheteur après un paiement par carte.
+   *
+   * Le prestataire héberge le formulaire de carte : c'est lui qui redirige, et
+   * il lui faut une adresse absolue. En multi-boutiques cette URL deviendra
+   * propre à chaque tenant (sous-domaine ou domaine personnalisé) ; tant que
+   * le développement se fait sur `localhost`, une valeur unique suffit.
+   */
+  STOREFRONT_PUBLIC_URL: z.string().url().default('http://localhost:5173'),
+
   APP_BASE_DOMAIN: z.string().default('shopnest.app'),
   CORS_ALLOWED_ORIGINS: z.string().default(''),
 })

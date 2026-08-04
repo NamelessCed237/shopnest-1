@@ -32,6 +32,46 @@ export const PAYMENT_STATUS = [
 ] as const
 export type PaymentStatus = (typeof PAYMENT_STATUS)[number]
 
+/**
+ * Adresse de livraison RECOPIÉE sur la commande, jamais référencée.
+ *
+ * `CreateOrderSchema` demandait un `shippingAddressId`, ce qui suppose un
+ * carnet d'adresses, donc un compte, donc une inscription avant tout achat.
+ * Sur les marchés visés, l'écrasante majorité des commandes sont passées en
+ * invité : imposer un compte, c'est perdre la vente.
+ *
+ * Elle est donc recopiée comme `productName` l'est sur la ligne : une commande
+ * doit rester lisible telle qu'elle a été passée, même si l'acheteur déménage
+ * ensuite ou corrige sa fiche.
+ */
+/*
+ * Chaque contrainte porte une CLÉ de message, pas un texte.
+ *
+ * Sans elles, zod fabrique le sien — « String must contain at least 3
+ * character(s) » — et c'est ce texte qui s'affiche sous le champ, en anglais,
+ * dans un formulaire français, devant un acheteur sur le point de payer. Les
+ * écrans résolvent `t(message)` : une clé inconnue tombe en français, un
+ * message anglais s'affiche tel quel.
+ */
+export const ShippingAddressSchema = z.object({
+  fullName: z.string().min(2, 'errors.address.fullName').max(120, 'errors.address.tooLong'),
+  /**
+   * Obligatoire, contrairement à l'usage européen : c'est par téléphone que le
+   * livreur joint l'acheteur, et l'adresse écrite est souvent approximative
+   * (« derrière la station Total »). Sans numéro, la livraison échoue.
+   */
+  phone: z.string().min(8, 'errors.address.phone').max(20, 'errors.address.phone'),
+  line1: z.string().min(3, 'errors.address.line1').max(200, 'errors.address.tooLong'),
+  line2: z.string().max(200, 'errors.address.tooLong').optional(),
+  city: z.string().min(2, 'errors.address.city').max(120, 'errors.address.tooLong'),
+  region: z.string().max(120, 'errors.address.tooLong').optional(),
+  /** Facultatif : plusieurs pays visés n'ont pas de code postal généralisé. */
+  postalCode: z.string().max(20, 'errors.address.tooLong').optional(),
+  /** ISO 3166-1 alpha-2. */
+  country: z.string().length(2, 'errors.address.country').toUpperCase(),
+})
+export type ShippingAddress = z.infer<typeof ShippingAddressSchema>
+
 export const OrderItemSchema = z.object({
   id: z.string().uuid(),
   productId: z.string().uuid(),
@@ -84,28 +124,27 @@ export const OrderSchema = z.object({
   /** Cumul des remboursements. Absent tant qu'aucun remboursement n'a eu lieu. */
   refundedAmount: MoneySchema.optional(),
   payment: PaymentSchema.optional(),
+  /**
+   * Absente des commandes créées avant le tunnel d'achat — d'où l'optionnel.
+   * Le vendeur ne peut pas expédier sans elle ; l'écran de détail le dit
+   * plutôt que d'afficher un bloc vide.
+   */
+  shippingAddress: ShippingAddressSchema.optional(),
+  /** Courriel de l'acheteur, seul point de contact d'une commande invité. */
+  email: z.string().email().optional(),
   createdAt: z.string().datetime(),
 })
 export type Order = z.infer<typeof OrderSchema>
 
-export const CreateOrderSchema = z.object({
-  items: z
-    .array(
-      z.object({
-        productId: z.string().uuid(),
-        variantId: z.string().uuid().optional(),
-        quantity: z.number().int().min(1).max(999),
-      }),
-    )
-    .min(1),
-  paymentMethod: z.enum(PAYMENT_METHODS),
-  /** Requis pour mtn_momo / orange_money. */
-  payerPhone: z.string().min(8).max(20).optional(),
-  shippingAddressId: z.string().uuid(),
-  /** Clé d'idempotence fournie par le client — doc/03 §6. */
-  idempotencyKey: z.string().uuid(),
-})
-export type CreateOrderInput = z.infer<typeof CreateOrderSchema>
+/*
+ * La création d'une commande vit dans `checkout.contract.ts`.
+ *
+ * Un `CreateOrderSchema` figurait ici, jamais implémenté et jamais importé. Il
+ * demandait un `shippingAddressId`, donc un carnet d'adresses, donc un compte
+ * avant tout achat — l'inverse de ce que le tunnel doit permettre. Le
+ * remplacer sur place aurait laissé deux portes d'entrée pour une seule
+ * opération ; il est supprimé, et `CheckoutSchema` est la seule.
+ */
 
 /**
  * doc §10.2 du cahier des charges — traitement des commandes.

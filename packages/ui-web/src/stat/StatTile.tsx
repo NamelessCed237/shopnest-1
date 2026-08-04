@@ -43,7 +43,19 @@ export function StatTile({
      * initiale des éléments de grille). Le débordement remontait alors jusqu'à
      * la page, qui gagnait une barre de défilement horizontale.
      */
-    <div className="flex min-w-0 flex-col gap-sm rounded-lg border border-border-base/60 bg-surface-base p-md shadow-sm">
+    <div
+      /*
+       * La tuile se déclare CONTENEUR : c'est ce qui donne un sens à l'unité
+       * `cqi` du chiffre ci-dessous, qui se dimensionne alors sur la largeur
+       * de la tuile et non sur celle de la fenêtre.
+       *
+       * En style inline plutôt qu'en classe utilitaire : `container-type`
+       * exige le plugin `@tailwindcss/container-queries`, une dépendance de
+       * plus pour une seule propriété posée à un seul endroit.
+       */
+      style={{ containerType: 'inline-size' }}
+      className="flex min-w-0 flex-col gap-sm rounded-lg border border-border-base/60 bg-surface-base p-md shadow-sm"
+    >
       <div className="flex items-center justify-between gap-sm">
         <span className="text-xs font-medium uppercase tracking-wide text-text-secondary">
           {label}
@@ -60,22 +72,31 @@ export function StatTile({
         <div className="h-9 w-28 animate-pulse rounded-sm bg-surface-sunken" />
       ) : (
         /*
-         * La taille est PROGRESSIVE, et la valeur peut revenir à la ligne.
+         * La taille du chiffre SUIT LA LARGEUR DE LA TUILE, via `cqi` — une
+         * unité relative au conteneur déclaré plus haut.
          *
-         * Un `text-3xl` inconditionnel débordait la tuile sur un écran de
-         * portable : les devises sans décimales — franc CFA, précisément le
-         * marché visé — comptent trois chiffres de plus qu'un euro à valeur
-         * égale, et « 24 742 750 FCFA » ne tient pas dans un quart de largeur
-         * à 1366 px. Le montant était coupé net.
+         * Trois réponses possibles à un montant trop long, deux mauvaises :
+         *   · le tronquer — « FCFA 24,742,75 » se lit comme une autre valeur ;
+         *   · le renvoyer à la ligne — la coupure tombe entre deux chiffres et
+         *     laisse le « 0 » final seul sur la seconde ligne ;
+         *   · le réduire jusqu'à ce qu'il tienne. Seule celle-ci préserve la
+         *     valeur.
          *
-         * Un chiffre tronqué est pire qu'un chiffre plus petit : il se lit
-         * comme une autre valeur. On réduit donc au besoin, et `break-words`
-         * garantit qu'aucune devise exotique ne pourra déborder à nouveau.
+         * Le cas n'est pas marginal : les devises sans décimales — franc CFA,
+         * soit le marché visé — comptent trois chiffres de plus qu'un euro à
+         * valeur égale.
          *
-         * `tracking-tight` : un grand nombre tabulaire respire trop par défaut
-         * et paraît étiré à cette taille.
+         * En CSS et non en JavaScript : une mesure au montage aurait exigé un
+         * ResizeObserver pour suivre les changements de largeur, là où le
+         * moteur de rendu recalcule `cqi` à chaque passe de mise en page,
+         * sans écouteur ni risque de boucle.
+         *
+         * 12 cqi : sur une tuile de 200 px cela donne 24 px, où « FCFA 24 742 750 »
+         * occupe environ 85 % de la largeur — de quoi absorber un ordre de
+         * grandeur de plus, ou une devise au libellé plus long. Bornes prises sur l'échelle de tokens
+         * (`lg` = 18 px, `3xl` = 40 px).
          */
-        <span className="break-words text-2xl font-semibold leading-tight tracking-tight tabular-nums text-text-primary 2xl:text-3xl">
+        <span className="block whitespace-nowrap text-[clamp(1.125rem,12cqi,2.5rem)] font-semibold leading-tight tracking-tight tabular-nums text-text-primary">
           {value}
         </span>
       )}

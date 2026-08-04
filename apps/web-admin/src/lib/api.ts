@@ -1,44 +1,64 @@
-import { createApiClient, createEntityResolver } from '@shopnest/api-client'
+import { adminEndpoints, authEndpoints, createApiClient } from '@shopnest/api-client'
 
 /**
  * doc/06 §3 — le client est plateforme-agnostique ; c'est ICI qu'on injecte
- * les adaptateurs propres au web (localStorage, sous-domaine, navigation).
+ * les adaptateurs propres au web (localStorage, navigation).
  */
 
-const ACCESS_KEY = 'shopnest.access'
-const REFRESH_KEY = 'shopnest.refresh'
+/*
+ * Clés de jeton PROPRES à l'administration.
+ *
+ * Le dashboard vendeur utilise `shopnest.access` sur le même hôte en
+ * développement : partager la clé ferait qu'une connexion admin écraserait la
+ * session vendeur ouverte dans l'onglet voisin, et inversement. Les deux
+ * sessions sont légitimes et doivent coexister.
+ */
+const ACCESS_KEY = 'shopnest.admin.access'
+const REFRESH_KEY = 'shopnest.admin.refresh'
 
-export const api = createApiClient({
+export const tokenStorage = {
+  getAccessToken: () => localStorage.getItem(ACCESS_KEY) ?? undefined,
+  getRefreshToken: () => localStorage.getItem(REFRESH_KEY) ?? undefined,
+  setTokens: ({ accessToken, refreshToken }: { accessToken: string; refreshToken: string }) => {
+    localStorage.setItem(ACCESS_KEY, accessToken)
+    localStorage.setItem(REFRESH_KEY, refreshToken)
+  },
+  clear: () => {
+    localStorage.removeItem(ACCESS_KEY)
+    localStorage.removeItem(REFRESH_KEY)
+  },
+}
+
+export const apiClient = createApiClient({
   baseUrl: import.meta.env.VITE_API_URL ?? '/api',
 
-  tokenStorage: {
-    getAccessToken: () => localStorage.getItem(ACCESS_KEY) ?? undefined,
-    getRefreshToken: () => localStorage.getItem(REFRESH_KEY) ?? undefined,
-    setTokens: ({ accessToken, refreshToken }) => {
-      localStorage.setItem(ACCESS_KEY, accessToken)
-      localStorage.setItem(REFRESH_KEY, refreshToken)
-    },
-    clear: () => {
-      localStorage.removeItem(ACCESS_KEY)
-      localStorage.removeItem(REFRESH_KEY)
-    },
-  },
+  tokenStorage,
 
-  /** Back-office plateforme : aucun tenant par défaut, l'admin choisit explicitement. */
-  getTenantId: () => {
-    const [sub] = window.location.hostname.split('.')
-    return sub && sub !== 'localhost' ? sub : undefined
-  },
+  /**
+   * AUCUN tenant.
+   *
+   * Le back-office plateforme travaille sur toutes les boutiques à la fois.
+   * Envoyer un `X-Tenant-Id` ouvrirait un contexte tenant côté serveur et
+   * ferait filtrer des requêtes qui doivent justement être transverses.
+   */
+  getTenantId: () => undefined,
 
   onUnauthenticated: () => {
-    window.location.assign('/login')
+    tokenStorage.clear()
+    if (window.location.pathname !== '/login') window.location.assign('/login')
   },
 
   getLocale: () => navigator.language.slice(0, 2),
 })
 
 /**
- * doc/07 §3.1 — permet d'écrire `<Dropdown source={{ entity: 'categories' }} />`
- * sans que le composant connaisse le détail HTTP.
+ * Pas de mode démonstration ici, contrairement au dashboard vendeur.
+ *
+ * L'administration agit sur de VRAIES boutiques : changer un plan ou un thème
+ * a des conséquences visibles pour un client. Une version simulée donnerait
+ * l'illusion d'avoir agi.
  */
-export const entityResolver = createEntityResolver(api)
+export const api = {
+  auth: authEndpoints(apiClient),
+  admin: adminEndpoints(apiClient),
+}

@@ -1,4 +1,4 @@
-import type { ListOrdersQuery, ListProductsQuery } from '@shopnest/contracts'
+import type { ListOrdersQuery, ListProductsQuery, ListTenantsQuery } from '@shopnest/contracts'
 
 /**
  * doc/04 §4 — query keys CENTRALISÉES.
@@ -45,6 +45,13 @@ export const analyticsKeys = {
 export const billingKeys = {
   all: ['billing'] as const,
   summary: () => [...billingKeys.all, 'summary'] as const,
+}
+
+export const adminKeys = {
+  all: ['admin'] as const,
+  summary: () => [...adminKeys.all, 'summary'] as const,
+  tenants: (query: Partial<ListTenantsQuery>) => [...adminKeys.all, 'tenants', query] as const,
+  tenant: (id: string) => [...adminKeys.all, 'tenant', id] as const,
 }
 
 export const settingsKeys = {

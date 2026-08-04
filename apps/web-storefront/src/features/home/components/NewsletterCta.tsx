@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from '@shopnest/i18n/react'
+import { Icon } from '@shopnest/ui-web'
 
 export function NewsletterCta() {
   const { t } = useTranslation()
@@ -56,7 +57,7 @@ export function NewsletterCta() {
           </div>
           <p className="text-xs text-white/60">{t('storefront.newsletter.trust')}</p>
           <p className="flex items-center gap-xs text-xs text-white/60">
-            <span aria-hidden="true">🔒</span>
+            <Icon name="lock" size="sm" />
             {t('storefront.newsletter.pci')}
           </p>
         </div>

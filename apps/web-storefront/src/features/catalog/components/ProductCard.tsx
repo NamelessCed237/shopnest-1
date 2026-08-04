@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from '@shopnest/i18n/react'
 import { MediaPlaceholder } from '@/components/media/MediaPlaceholder'
 import { discountPercent, type StorefrontProduct } from '@/lib/fake/storefront.fixtures'
+import { Icon } from '@shopnest/ui-web'
 
 export interface ProductCardProps {
   product: StorefrontProduct
@@ -34,7 +35,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
           )}
           className="absolute end-sm top-sm grid h-8 w-8 place-items-center rounded-full bg-surface-base/90 text-text-secondary shadow-sm outline-none transition-colors hover:text-status-danger focus-visible:ring-2 focus-visible:ring-border-focus"
         >
-          <span aria-hidden="true">{wishlisted ? '♥' : '♡'}</span>
+          <Icon name="heart" filled={wishlisted} size="lg" />
         </button>
       </div>
 
@@ -83,8 +84,8 @@ function Rating({ value, count }: { value: number; count: number }) {
       className="flex shrink-0 items-center gap-xs text-xs text-text-secondary"
       title={`${value} / 5 — ${count} avis`}
     >
-      <span aria-hidden="true" className="text-status-success">
-        ★
+      <span className="text-status-success">
+        <Icon name="star" filled size="sm" />
       </span>
       <span className="tabular-nums">{value.toLocaleString(locale, { minimumFractionDigits: 1 })}</span>
     </span>

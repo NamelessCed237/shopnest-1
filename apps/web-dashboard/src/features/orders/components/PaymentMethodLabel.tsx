@@ -1,11 +1,17 @@
 import type { Payment, PaymentMethod } from '@shopnest/contracts'
 import { useTranslation } from '@shopnest/i18n/react'
+import { Icon, type IconName } from '@shopnest/ui-web'
 
-const ICON: Record<PaymentMethod, string> = {
-  card: '💳',
-  mtn_momo: '📱',
-  orange_money: '📱',
-  bank_transfer: '🏦',
+/**
+ * Mobile Money partage l'icône du téléphone : c'est le SUPPORT qui distingue
+ * ces moyens de paiement de la carte, pas l'opérateur. Le nom, juste à côté,
+ * fait la différence entre MTN et Orange.
+ */
+const ICON: Record<PaymentMethod, IconName> = {
+  card: 'credit-card',
+  mtn_momo: 'smartphone',
+  orange_money: 'smartphone',
+  bank_transfer: 'bank',
 }
 
 export function PaymentMethodLabel({ payment }: { payment: Payment | undefined }) {
@@ -16,7 +22,9 @@ export function PaymentMethodLabel({ payment }: { payment: Payment | undefined }
   return (
     <span className="flex flex-col">
       <span className="flex items-center gap-xs">
-        <span aria-hidden="true">{ICON[payment.method]}</span>
+        <span className="text-text-secondary">
+          <Icon name={ICON[payment.method]} />
+        </span>
         {t(`orders.paymentMethod.${payment.method}`)}
       </span>
 

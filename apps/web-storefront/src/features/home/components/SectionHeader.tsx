@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Icon } from '@shopnest/ui-web'
 
 export interface SectionHeaderProps {
   title: string
@@ -30,7 +31,7 @@ export function SectionHeader({
             className="flex items-center gap-xs text-sm font-medium text-brand-primary hover:underline"
           >
             {actionLabel}
-            <span aria-hidden="true">→</span>
+            <Icon name="arrow-right" size="sm" />
           </a>
         ))}
     </div>

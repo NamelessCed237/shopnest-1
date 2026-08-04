@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from '@shopnest/i18n/react'
-import { cn } from '@shopnest/ui-web'
+import { cn, Icon } from '@shopnest/ui-web'
 import { useSessionStore } from '@/features/auth'
 import { NAV_SECTIONS, type NavItem } from './nav-items'
 
@@ -68,7 +68,7 @@ export function Sidebar({ collapsed, onToggleCollapse, onNavigate }: SidebarProp
           className="flex w-full items-center gap-sm rounded-md px-sm py-xs text-sm text-text-secondary outline-none hover:bg-surface-raised hover:text-text-primary focus-visible:ring-2 focus-visible:ring-border-focus"
         >
           <span aria-hidden="true" className="grid h-5 w-5 shrink-0 place-items-center">
-            {collapsed ? '»' : '«'}
+            <Icon name={collapsed ? 'chevron-right' : 'chevron-left'} />
           </span>
           {!collapsed && <span>{t('nav.collapse')}</span>}
         </button>

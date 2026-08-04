@@ -1,6 +1,6 @@
 import { PLAN_LIMITS, quotaRatio, type BillingSummary } from '@shopnest/contracts'
 import { useTranslation } from '@shopnest/i18n/react'
-import { Badge, Card } from '@shopnest/ui-web'
+import { Badge, Card, Icon } from '@shopnest/ui-web'
 
 /**
  * Plan, quotas et fonctionnalités incluses.
@@ -114,7 +114,7 @@ function Feature({ enabled, label }: { enabled: boolean; label: string }) {
   return (
     <li>
       <Badge variant={enabled ? 'success' : 'neutral'}>
-        <span aria-hidden="true">{enabled ? '✓' : '—'}</span> {label}
+        <Icon name={enabled ? 'check' : 'minus'} size="sm" /> {label}
       </Badge>
     </li>
   )

@@ -1,4 +1,6 @@
 import type {
+  BulkProductActionInput,
+  BulkProductResult,
   CreateProductInput,
   CreateVariantInput,
   CursorPage,
@@ -43,6 +45,16 @@ export function productsEndpoints(client: ApiClient) {
 
     removeVariant: (productId: string, variantId: string, options?: RequestOptions) =>
       client.delete<Product>(`/products/${productId}/variants/${variantId}`, options),
+
+    /**
+     * Actions groupées.
+     *
+     * Renvoie le NOMBRE de produits réellement modifiés, qui peut être
+     * inférieur au nombre envoyé : un produit archivé entre-temps, ou
+     * appartenant à un autre vendeur, est ignoré par l'isolation.
+     */
+    bulk: (input: BulkProductActionInput, options?: RequestOptions) =>
+      client.patch<BulkProductResult>('/products/bulk', input, options),
 
     /**
      * Archivage (soft delete) — doc/03 §4.

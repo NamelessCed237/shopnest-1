@@ -123,6 +123,23 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
   }
 
   /**
+   * ÉCRITURE brute avec contexte RLS — pendant de `queryRawScoped`.
+   *
+   * Renvoie le nombre de lignes touchées. Utile pour les écritures qu'aucune
+   * API Prisma n'exprime en une instruction : la table de jointure d'une
+   * relation many-to-many, par exemple, que `connect` ne sait modifier que
+   * produit par produit.
+   */
+  async executeRawScoped(query: Prisma.Sql): Promise<number> {
+    const tenantId = TenantContext.getTenantIdOrThrow()
+    const [, affected] = await this.$transaction([
+      this.$executeRawUnsafe(`SELECT set_config('app.tenant_id', '${assertUuid(tenantId)}', true)`),
+      this.$executeRaw(query),
+    ])
+    return affected
+  }
+
+  /**
    * Requête brute pour un tenant DONNÉ, hors `TenantContext`.
    *
    * Utilisée par le back-office plateforme, qui interroge successivement chaque

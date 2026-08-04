@@ -1,5 +1,7 @@
 import type {
   AppError,
+  BulkProductActionInput,
+  BulkProductResult,
   CreateProductInput,
   CreateVariantInput,
   CursorPage,
@@ -279,6 +281,43 @@ export const fakeProductMutations = {
     }
     fakeProducts[index] = archived
     return snapshotProduct(archived)
+  },
+
+  /**
+   * Actions groupées.
+   *
+   * Comme le backend, on renvoie le nombre de produits RÉELLEMENT modifiés :
+   * un identifiant inconnu est ignoré en silence plutôt que de faire échouer
+   * tout le lot. L'écran doit se comporter pareil dans les deux modes.
+   */
+  async bulk(input: BulkProductActionInput): Promise<BulkProductResult> {
+    await sleep(LATENCY_MS)
+
+    let affected = 0
+    for (const id of input.ids) {
+      const index = fakeProducts.findIndex((item) => item.id === id)
+      if (index === -1) continue
+
+      const current = fakeProducts[index]!
+      const updatedAt = new Date().toISOString()
+
+      if (input.action === 'archive') {
+        fakeProducts[index] = { ...current, status: 'archived', updatedAt }
+      } else if (input.action === 'setStatus') {
+        fakeProducts[index] = { ...current, status: input.status, updatedAt }
+      } else {
+        const withoutIt = current.categoryIds.filter((c) => c !== input.categoryId)
+        fakeProducts[index] = {
+          ...current,
+          categoryIds:
+            input.action === 'addCategory' ? [...withoutIt, input.categoryId] : withoutIt,
+          updatedAt,
+        }
+      }
+      affected += 1
+    }
+
+    return { affected }
   },
 }
 

@@ -643,4 +643,14 @@ export const fr: Record<string, string> = {
   'admin.plan.downgradeTitle': 'La boutique dépasse déjà ce plan',
   'admin.plan.downgradeBody':
     'Elle compte {products} produits pour une limite de {limit}. Aucun produit ne sera supprimé, mais le vendeur ne pourra plus en créer tant qu’il n’est pas repassé sous la limite.',
+
+  'products.bulk.selected_one': '{count} produit sélectionné',
+  'products.bulk.selected_other': '{count} produits sélectionnés',
+  'products.bulk.setStatus': 'Changer le statut',
+  'products.bulk.addCategory': 'Ajouter une catégorie',
+  'products.bulk.archive': 'Archiver',
+  'products.bulk.clear': 'Annuler la sélection',
+  'products.bulk.done_one': '{count} produit mis à jour.',
+  'products.bulk.done_other': '{count} produits mis à jour.',
+  'products.bulk.tooMany': 'Sélection limitée à {max} produits à la fois.',
 }

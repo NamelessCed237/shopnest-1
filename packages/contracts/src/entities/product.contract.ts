@@ -101,3 +101,57 @@ export const ListProductsQuerySchema = CursorQuerySchema.extend({
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 })
 export type ListProductsQuery = z.infer<typeof ListProductsQuerySchema>
+
+/**
+ * Nombre maximal de produits traités en une opération groupée.
+ *
+ * Une borne EXPLICITE plutôt qu'un traitement illimité : sans elle, un
+ * « tout sélectionner » sur un catalogue de cinq mille articles enverrait
+ * cinq mille identifiants dans une requête, et l'écriture tiendrait la
+ * connexion assez longtemps pour bloquer le reste du tenant.
+ */
+export const MAX_BULK_PRODUCTS = 100
+
+const BulkIdsSchema = z.array(z.string().uuid()).min(1).max(MAX_BULK_PRODUCTS)
+
+/**
+ * Actions groupées sur le catalogue.
+ *
+ * Union DISCRIMINÉE par `action` : chaque variante ne porte que les champs
+ * qu'elle utilise. Un objet plat avec `status?` et `categoryId?` tous deux
+ * optionnels laisserait passer « archiver avec une catégorie », combinaison
+ * qui n'a pas de sens et qu'il faudrait rejeter à la main dans le service.
+ */
+export const BulkProductActionSchema = z.discriminatedUnion('action', [
+  /** Archivage — jamais de suppression : l'historique de commande y renvoie. */
+  z.object({ action: z.literal('archive'), ids: BulkIdsSchema }),
+  z.object({
+    action: z.literal('setStatus'),
+    ids: BulkIdsSchema,
+    status: z.enum(PRODUCT_STATUS),
+  }),
+  z.object({
+    action: z.literal('addCategory'),
+    ids: BulkIdsSchema,
+    categoryId: z.string().uuid(),
+  }),
+  z.object({
+    action: z.literal('removeCategory'),
+    ids: BulkIdsSchema,
+    categoryId: z.string().uuid(),
+  }),
+])
+export type BulkProductActionInput = z.infer<typeof BulkProductActionSchema>
+
+/**
+ * `affected` peut être INFÉRIEUR au nombre d'identifiants envoyés.
+ *
+ * Un produit d'un autre vendeur, ou supprimé entre la sélection et la
+ * validation, ne sera pas modifié — l'isolation le filtre silencieusement.
+ * L'écran affiche donc ce qui a réellement changé, et non ce qui avait été
+ * demandé.
+ */
+export const BulkProductResultSchema = z.object({
+  affected: z.number().int().min(0),
+})
+export type BulkProductResult = z.infer<typeof BulkProductResultSchema>

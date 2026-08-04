@@ -1,8 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type { ListProductsQuery, Product } from '@shopnest/contracts'
 import { useTranslation } from '@shopnest/i18n/react'
 import { Button, DataTable, EmptyState, type DataTableColumn } from '@shopnest/ui-web'
 import { countLabelKey } from '../../../lib/count-label'
+import { BulkActionBar } from './BulkActionBar'
 import { useProducts, type ProductFilters } from '../api/use-products'
 import { ProductStatusBadge } from './ProductStatusBadge'
 import { StockCell } from './StockCell'
@@ -78,6 +79,7 @@ export function ProductsTable({
         : 'success'
 
   const hasActiveFilter = Boolean(filters.search || filters.status || filters.categoryId)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const count = countLabelKey('products.countShown', rows.length, query.data?.pages[0]?.total)
 
   return (
@@ -102,6 +104,8 @@ export function ProductsTable({
         sort={{ key: (filters.sortBy ?? 'createdAt') as SortKey, order: filters.sortOrder ?? 'desc' }}
         onSortChange={(sort) => onSortChange(sort.key, sort.order)}
         selectionMode="multiple"
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
         renderEmpty={() =>
           hasActiveFilter ? (
             <EmptyState
@@ -136,6 +140,8 @@ export function ProductsTable({
           )}
         </div>
       )}
+
+      <BulkActionBar selectedIds={selectedIds} onClear={() => setSelectedIds([])} />
     </div>
   )
 }

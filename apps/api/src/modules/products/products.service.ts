@@ -3,6 +3,8 @@ import { EventEmitter2 } from '@nestjs/event-emitter'
 import {
   derivePrice,
   deriveStock,
+  type BulkProductActionInput,
+  type BulkProductResult,
   type CreateProductInput,
   type CreateVariantInput,
   type ListProductsQuery,
@@ -148,6 +150,27 @@ export class ProductsService {
   async archive(id: string) {
     await this.detail(id)
     return this.repo.softDelete(id)
+  }
+
+  /**
+   * Actions groupées.
+   *
+   * Aucune vérification d'existence préalable, contrairement aux opérations
+   * unitaires : sur cent identifiants, cela ferait cent lectures avant même
+   * d'écrire. L'isolation garantit qu'un produit d'un autre vendeur ne sera
+   * pas touché, et le compte renvoyé dit ce qui a réellement changé.
+   */
+  async bulk(input: BulkProductActionInput): Promise<BulkProductResult> {
+    switch (input.action) {
+      case 'archive':
+        return { affected: await this.repo.bulkArchive(input.ids) }
+      case 'setStatus':
+        return { affected: await this.repo.bulkSetStatus(input.ids, input.status) }
+      case 'addCategory':
+        return { affected: await this.repo.bulkCategory(input.ids, input.categoryId, true) }
+      case 'removeCategory':
+        return { affected: await this.repo.bulkCategory(input.ids, input.categoryId, false) }
+    }
   }
 
   /**

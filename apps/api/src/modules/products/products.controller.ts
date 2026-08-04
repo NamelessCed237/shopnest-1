@@ -10,11 +10,13 @@ import {
   UseGuards,
 } from '@nestjs/common'
 import {
+  BulkProductActionSchema,
   CreateProductSchema,
   CreateVariantSchema,
   ListProductsQuerySchema,
   UpdateProductSchema,
   UpdateVariantSchema,
+  type BulkProductActionInput,
   type CreateProductInput,
   type CreateVariantInput,
   type ListProductsQuery,
@@ -50,6 +52,17 @@ export class ProductsController {
   @UseGuards(PlanLimitGuard('products'))
   create(@Body(new ZodValidationPipe(CreateProductSchema)) dto: CreateProductInput) {
     return this.products.create(dto)
+  }
+
+  /**
+   * Déclarée AVANT `:id` : Nest apparie dans l'ordre, et `/products/bulk`
+   * serait sinon compris comme la modification du produit d'identifiant
+   * « bulk ».
+   */
+  @Patch('bulk')
+  @Roles('tenant_admin')
+  bulk(@Body(new ZodValidationPipe(BulkProductActionSchema)) dto: BulkProductActionInput) {
+    return this.products.bulk(dto)
   }
 
   @Patch(':id')

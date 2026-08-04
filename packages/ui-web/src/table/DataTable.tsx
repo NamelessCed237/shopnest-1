@@ -42,6 +42,8 @@ export interface DataTableProps<Row, K extends string = string> {
   onSortChange?: (sort: DataTableSort<K>) => void
 
   selectionMode?: 'none' | 'single' | 'multiple'
+  /** Sélection contrôlée — permet à l'appelant de la vider après une action. */
+  selectedIds?: string[]
   onSelectionChange?: (ids: string[]) => void
   onRowClick?: (row: Row) => void
 
@@ -61,6 +63,7 @@ export function DataTable<Row, K extends string = string>({
   sort,
   onSortChange,
   selectionMode = 'none',
+  selectedIds,
   onSelectionChange,
   onRowClick,
   renderEmpty,
@@ -72,6 +75,7 @@ export function DataTable<Row, K extends string = string>({
     sort,
     onSortChange,
     selectionMode,
+    ...(selectedIds ? { selectedIds } : {}),
     onSelectionChange,
   })
 

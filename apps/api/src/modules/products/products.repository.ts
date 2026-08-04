@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import type { Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import type {
   CreateProductInput,
   CreateVariantInput,
@@ -119,6 +119,73 @@ export class ProductsRepository {
 
   async removeVariant(variantId: string) {
     await this.db.productVariant.deleteMany({ where: { id: variantId } })
+  }
+
+  /**
+   * Opérations groupées.
+   *
+   * `updateMany` et non une boucle de `update` : une seule requête, et surtout
+   * un seul aller-retour. L'extension d'isolation injecte `tenantId` dans le
+   * `where`, donc un identifiant appartenant à un autre vendeur ne correspond
+   * simplement à aucune ligne — il est ignoré, pas refusé bruyamment.
+   */
+  async bulkSetStatus(ids: string[], status: string): Promise<number> {
+    const { count } = await this.db.product.updateMany({
+      where: { id: { in: ids }, deletedAt: null },
+      data: { status },
+    })
+    return count
+  }
+
+  async bulkArchive(ids: string[]): Promise<number> {
+    const { count } = await this.db.product.updateMany({
+      where: { id: { in: ids }, deletedAt: null },
+      data: { status: 'archived', deletedAt: new Date() },
+    })
+    return count
+  }
+
+  /**
+   * Rattachement ou détachement de catégorie, en UNE requête.
+   *
+   * `connect` / `disconnect` de Prisma ne s'appliquent qu'à un produit à la
+   * fois : en boucle, cent produits font cent allers-retours. Enveloppés dans
+   * une transaction interactive, ils échouent en plus sur `P2028` — le pooler
+   * Supabase est en mode TRANSACTION et ne garantit pas que les instructions
+   * successives atteignent la même connexion.
+   *
+   * Une seule instruction SQL règle les deux : atomique par nature, un seul
+   * aller-retour, et rien à maintenir ouvert.
+   *
+   * La table de jointure n'a pas de `tenant_id` et n'est donc pas protégée par
+   * la RLS — mais les deux tables jointes, `products` et `categories`, le sont.
+   * Un produit ou une catégorie d'un autre vendeur ne ressort pas de la
+   * sélection, et rien n'est écrit pour lui.
+   */
+  async bulkCategory(ids: string[], categoryId: string, attach: boolean): Promise<number> {
+    const query = attach
+      ? Prisma.sql`
+          INSERT INTO "_CategoryToProduct" ("A", "B")
+          SELECT c.id, p.id
+          FROM products p, categories c
+          WHERE c.id = ${categoryId}::uuid
+            AND p.id = ANY(${ids}::uuid[])
+            AND p.deleted_at IS NULL
+          -- Rattacher une catégorie déjà présente ne doit pas échouer : c'est
+          -- le cas normal quand une partie de la sélection y était déjà.
+          ON CONFLICT DO NOTHING`
+      : Prisma.sql`
+          DELETE FROM "_CategoryToProduct" cp
+          USING products p, categories c
+          WHERE cp."B" = p.id
+            AND cp."A" = c.id
+            AND c.id = ${categoryId}::uuid
+            AND p.id = ANY(${ids}::uuid[])
+            AND p.deleted_at IS NULL`
+
+    // `affected` compte les LIENS créés ou supprimés, pas les produits visés :
+    // un produit déjà rattaché n'est pas recompté, puisque rien n'a changé.
+    return this.prisma.executeRawScoped(query)
   }
 
   /** Soft delete : on ne casse jamais l'historique d'une commande (doc/03 §4). */

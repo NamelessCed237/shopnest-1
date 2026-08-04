@@ -21,6 +21,15 @@ export interface UseDataTableParams<Row, K extends string = string> {
   sort?: DataTableSort<K>
   onSortChange?: (sort: DataTableSort<K>) => void
   selectionMode?: 'none' | 'single' | 'multiple'
+  /**
+   * Sélection CONTRÔLÉE — R4, comme pour le select.
+   *
+   * Sans elle, l'appelant peut apprendre ce qui est coché mais pas le
+   * décocher : une barre d'actions groupées ne pourrait pas vider la sélection
+   * après avoir agi, et parlerait encore de lignes que le tableau vient de
+   * modifier ou de retirer.
+   */
+  selectedIds?: string[]
   onSelectionChange?: (ids: string[]) => void
 }
 
@@ -30,9 +39,12 @@ export function useDataTable<Row, K extends string = string>({
   sort,
   onSortChange,
   selectionMode = 'none',
+  selectedIds: controlledIds,
   onSelectionChange,
 }: UseDataTableParams<Row, K>) {
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [internalIds, setInternalIds] = useState<string[]>([])
+  const isControlled = controlledIds !== undefined
+  const selectedIds = isControlled ? controlledIds : internalIds
 
   // Set plutôt qu'un `includes` par ligne : O(1) au lieu de O(n) × n lignes.
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
@@ -40,10 +52,12 @@ export function useDataTable<Row, K extends string = string>({
 
   const commit = useCallback(
     (ids: string[]) => {
-      setSelectedIds(ids)
+      // En mode contrôlé, l'état interne n'est pas écrit : le parent est la
+      // seule source de vérité, sinon les deux divergeraient au premier vidage.
+      if (!isControlled) setInternalIds(ids)
       onSelectionChange?.(ids)
     },
-    [onSelectionChange],
+    [isControlled, onSelectionChange],
   )
 
   const toggleRow = useCallback(

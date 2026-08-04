@@ -640,4 +640,14 @@ export const en: Record<string, string> = {
   'admin.plan.downgradeTitle': 'The store already exceeds this plan',
   'admin.plan.downgradeBody':
     'It holds {products} products against a limit of {limit}. Nothing is deleted, but the merchant cannot create more until they are back under the limit.',
+
+  'products.bulk.selected_one': '{count} product selected',
+  'products.bulk.selected_other': '{count} products selected',
+  'products.bulk.setStatus': 'Change status',
+  'products.bulk.addCategory': 'Add a category',
+  'products.bulk.archive': 'Archive',
+  'products.bulk.clear': 'Clear selection',
+  'products.bulk.done_one': '{count} product updated.',
+  'products.bulk.done_other': '{count} products updated.',
+  'products.bulk.tooMany': 'Limited to {max} products at a time.',
 }

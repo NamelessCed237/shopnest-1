@@ -19,7 +19,8 @@
     "clean": "rimraf dist .turbo",
     "db:status": "dotenv -e ../../.env -- prisma migrate status",
     "db:check": "dotenv -e ../../.env -- tsx prisma/supabase/check-connection.ts",
-    "db:provision": "dotenv -e ../../.env -- tsx prisma/supabase/provision-app-role.ts"
+    "db:provision": "dotenv -e ../../.env -- tsx prisma/supabase/provision-app-role.ts",
+    "mfa:code": "dotenv -e ../../.env -- tsx prisma/supabase/mfa-code.ts"
   },
   "dependencies": {
     "@nestjs/common": "11.0.1",

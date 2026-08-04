@@ -18,7 +18,7 @@ export const fakeTenant: Tenant = {
   planCode: 'pro',
   countryCode: 'CM',
   defaultCurrency: 'XAF',
-  theme: {},
+  theme: { defaultMode: 'system' },
   createdAt: '2026-01-15T09:00:00.000Z',
 }
 

@@ -9,6 +9,7 @@
  */
 
 export * from './themes.js'
+export * from './brand.js'
 import { lightTheme } from './themes.js'
 
 /**
@@ -67,24 +68,12 @@ export type Spacing = keyof typeof spacing
 export type Radius = keyof typeof radius
 export type FontSize = keyof typeof fontSize
 
-/**
- * Thème par tenant : l'API renvoie une surcharge partielle, fusionnée avec les valeurs
- * par défaut. Même mécanisme sur les deux plateformes.
+/*
+ * Le thème par tenant est traité par `deriveBrandPalette` (./brand.ts), qui
+ * produit une palette complète — survol, fond discret, couleur du texte posé
+ * dessus — à partir de la seule couleur choisie, puis des VARIABLES CSS.
+ *
+ * L'ancienne `applyTenantTheme` renvoyait un objet de couleurs JavaScript :
+ * elle ne pouvait donc rien changer aux composants, qui lisent leurs couleurs
+ * depuis les variables CSS et non depuis un objet importé.
  */
-export interface TenantTheme {
-  brandPrimary?: string
-  brandPrimaryHover?: string
-  radiusScale?: 'sharp' | 'default' | 'rounded'
-}
-
-export function applyTenantTheme(theme: TenantTheme): ThemedColors {
-  if (!theme.brandPrimary) return colors
-  return {
-    ...colors,
-    brand: {
-      ...colors.brand,
-      primary: theme.brandPrimary,
-      primaryHover: theme.brandPrimaryHover ?? theme.brandPrimary,
-    },
-  }
-}
